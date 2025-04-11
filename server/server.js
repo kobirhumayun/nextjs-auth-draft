@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
+const connectDB = require('./config/database');
 
 dotenv.config();
 
@@ -37,7 +38,24 @@ app.use((err, req, res, next) => {
     res.status(500).send('Something broke!');
 });
 
-// Start the server
-const server = app.listen(port, () => {
-    console.log(`Server is running on port: ${port}`);
-});
+
+// --- Start Server Function ---
+const startServer = async () => {
+    try {
+        // 1. Connect to Database (and wait for it)
+        await connectDB();
+
+        // 2. Start Listening for Requests
+        const server = app.listen(port, () => {
+            console.log(`Server is running on port: ${port}`);
+        });
+
+    } catch (error) {
+        // Catch errors during initial startup (e.g., DB connection failure handled in connectDB)
+        console.error('Failed to start server:', error);
+        process.exit(1); // Exit if server cannot start
+    }
+};
+
+// --- Initialize Server ---
+startServer();
