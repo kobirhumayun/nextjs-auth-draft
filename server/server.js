@@ -3,6 +3,8 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
 const connectDB = require('./config/database');
+const userRoutes = require('./routes/user');
+
 
 dotenv.config();
 
@@ -31,6 +33,7 @@ app.use(cookieParser());
 app.get('/', (req, res) => {
     res.send('Backend is running!');
 });
+app.use('/api/users', userRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
