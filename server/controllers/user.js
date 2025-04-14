@@ -159,7 +159,7 @@ const loginUser = async (req, res) => {
         // Select '+password_hash' if it's excluded by default in your schema
         const user = await User.findOne({
             $or: [{ username: identifier }, { email: identifier }]
-        }).select('+password_hash +refreshToken'); // Include fields needed for login
+        }).select('+password_hash +refresh_token'); // Include fields needed for login
 
         if (!user) {
             return res.status(404).json({ message: 'Invalid credentials.' }); // Generic message
