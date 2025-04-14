@@ -278,11 +278,11 @@ const refreshAccessToken = async (req, res) => {
         // Generate new tokens (optional: implement refresh token rotation)
         // For simplicity here, we'll just generate a new access token.
         // For rotation: generate new access AND refresh tokens, update DB, send new cookie.
-        const newAccessToken = generateAccessToken(user);
+        // const newAccessToken = generateAccessToken(user);
 
         // --- Optional: Refresh Token Rotation ---
-        // const { accessToken: newAccessToken, refreshToken: newRefreshToken } = await generateAccessAndRefereshTokens(user);
-        // res.cookie('refreshToken', newRefreshToken, COOKIE_OPTIONS);
+        const { accessToken: newAccessToken, refreshToken: newRefreshToken } = await generateAccessAndRefereshTokens(user);
+        res.cookie('refreshToken', newRefreshToken, COOKIE_OPTIONS);
         // --- End Optional Rotation ---
 
 
