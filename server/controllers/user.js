@@ -227,8 +227,8 @@ const logoutUser = async (req, res) => {
         // This invalidates the specific refresh token they were using.
         const user = await User.findOneAndUpdate(
             // Find criteria: either by ID (if auth middleware provides it) or by the token itself
-            userId ? { _id: userId } : { refreshToken: incomingRefreshToken },
-            { $unset: { refreshToken: "" } }, // Use $unset or set to null/undefined
+            userId ? { _id: userId } : { refresh_token: incomingRefreshToken },
+            { $unset: { refresh_token: "" } }, // Use $unset or set to null/undefined
             { new: true } // Optional: return the updated document
         );
 
