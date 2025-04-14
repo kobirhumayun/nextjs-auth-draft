@@ -265,10 +265,10 @@ const refreshAccessToken = async (req, res) => {
         const decoded = jwt.verify(incomingRefreshToken, REFRESH_TOKEN_SECRET);
 
         // Find the user associated with the token ID
-        const user = await User.findById(decoded._id).select('+refreshToken'); // Ensure refreshToken is selected
+        const user = await User.findById(decoded._id).select('+refresh_token'); // Ensure refreshToken is selected
 
         // Check if user exists and if the incoming token matches the one stored in the DB
-        if (!user || user.refreshToken !== incomingRefreshToken) {
+        if (!user || user.refresh_token !== incomingRefreshToken) {
             // If mismatch, potentially compromised token or user logged out elsewhere.
             // Consider clearing the cookie here as a security measure.
             res.clearCookie('refreshToken', COOKIE_OPTIONS);
