@@ -128,7 +128,7 @@ const generateAccessAndRefereshTokens = async (user) => {
 
         // Store the refresh token in the database associated with the user
         // This allows invalidating it on logout or if compromised
-        user.refreshToken = refreshToken;
+        user.refresh_token = refreshToken;
         await user.save({ validateBeforeSave: false }); // Skip validation if only updating token
 
         return { accessToken, refreshToken };
