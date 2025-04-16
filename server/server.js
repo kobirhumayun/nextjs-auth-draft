@@ -4,6 +4,7 @@ const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
 const connectDB = require('./config/database');
 const userRoutes = require('./routes/user');
+const authRoutes = require('./routes/authRoutes');
 
 
 dotenv.config();
@@ -34,6 +35,8 @@ app.get('/', (req, res) => {
     res.send('Backend is running!');
 });
 app.use('/api/users', userRoutes);
+app.use('/api/auth', authRoutes);
+
 
 // Error handling middleware
 app.use((err, req, res, next) => {
