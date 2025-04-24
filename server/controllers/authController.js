@@ -49,7 +49,7 @@ exports.requestPasswordReset = async (req, res, next) => {
         const subject = 'Your Password Reset OTP';
         const text = `Your password reset OTP is: ${plainOtp}\nIt is valid for ${process.env.OTP_EXPIRY_MINUTES || '10'} minutes.`;
         // Optional HTML version
-        // const html = `<p>Your password reset OTP is: <b>${plainOtp}</b></p><p>It is valid for ${process.env.OTP_EXPIRY_MINUTES || '10'} minutes.</p>`;
+        const html = `<p>Your password reset OTP is: <b>${plainOtp}</b></p><p>It is valid for ${process.env.OTP_EXPIRY_MINUTES || '10'} minutes.</p>`;
 
         await sendNotification({
             method: 'email', // Specify email method
