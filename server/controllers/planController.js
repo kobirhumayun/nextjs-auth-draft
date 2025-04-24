@@ -81,6 +81,104 @@ const addPlan = async (req, res) => {
 };
 
 /**
+ * @desc   Update a subscription plan identified by its slug in the request body (Admin only)
+ * @route  PUT /api/plans  <-- Route no longer needs :slug param
+ * @access Private/Admin
+ * @body   { targetSlug: string, name?, slug?, description?, price?, billingCycle?, currency?, features?, limits?, isPublic?, displayOrder?, stripePriceId? } - targetSlug identifies the plan, other fields are updates.
+ */
+const updatePlan = async (req, res) => {
+    // Get the slug of the plan to update AND the update data from the request body
+    const { targetSlug, ...updateData } = req.body;
+
+    // Basic validation: Check if targetSlug is provided in the body
+    if (!targetSlug) {
+        return res.status(400).json({ message: 'targetSlug is required in the request body to identify the plan.' });
+    }
+
+    // Check if there's any actual update data provided (besides targetSlug)
+    if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ message: 'No update data provided (besides targetSlug).' });
+    }
+
+    // Sanitize the potential new slug if provided in updateData
+    if (updateData.slug) {
+        updateData.slug = updateData.slug.toLowerCase().trim();
+    }
+
+    try {
+        // Find the plan by its target slug first to ensure it exists
+        const planToUpdate = await Plan.findOne({ slug: targetSlug.toLowerCase().trim() });
+
+        if (!planToUpdate) {
+            return res.status(404).json({ message: `Plan with slug '${targetSlug}' not found.` });
+        }
+
+        // --- Conflict Check (if name or new slug is being updated) ---
+        // Check if the new name or new slug conflicts with another existing plan
+        const conflictQuery = [];
+        if (updateData.name && updateData.name !== planToUpdate.name) {
+            conflictQuery.push({ name: updateData.name });
+        }
+        // Check if a *new* slug is provided and it's different from the *original* slug
+        if (updateData.slug && updateData.slug !== planToUpdate.slug) {
+            conflictQuery.push({ slug: updateData.slug });
+        }
+
+        if (conflictQuery.length > 0) {
+            const conflictingPlan = await Plan.findOne({
+                _id: { $ne: planToUpdate._id }, // Exclude the current plan itself
+                $or: conflictQuery
+            });
+
+            if (conflictingPlan) {
+                let conflictField = (conflictingPlan.name === updateData.name) ? 'name' : 'slug';
+                return res.status(409).json({ message: `Another plan with the proposed ${conflictField} already exists.` });
+            }
+        }
+        // --- End Conflict Check ---
+
+        // Find the plan by the original target slug and update it with the new data
+        // { new: true } returns the updated document
+        // { runValidators: true } ensures schema validations run on the update
+        const updatedPlan = await Plan.findOneAndUpdate(
+            { slug: targetSlug.toLowerCase().trim() }, // Find by original target slug from body
+            { $set: updateData }, // Apply the updates
+            { new: true, runValidators: true, context: 'query' } // Options
+        );
+
+        // Although checked existence earlier, findOneAndUpdate could potentially fail
+        // (e.g., race condition where it was deleted between the findOne and findOneAndUpdate).
+        // It returns null if no document was found *to update*.
+        if (!updatedPlan) {
+            // This case is less likely given the initial check, but good for robustness
+            return res.status(404).json({ message: `Plan with slug '${targetSlug}' not found during update attempt.` });
+        }
+
+        res.status(200).json({
+            message: 'Plan updated successfully.',
+            plan: updatedPlan
+        });
+
+    } catch (error) {
+        // Handle Mongoose validation errors during update
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ message: 'Validation failed during update', errors: messages });
+        }
+        // Handle duplicate key error during update (if conflict check somehow missed it or race condition)
+        if (error.code === 11000) {
+            const field = Object.keys(error.keyPattern)[0];
+            return res.status(409).json({ message: `Update failed: A plan with this ${field} already exists.` });
+        }
+
+        // Generic server error
+        console.error(`Error updating plan identified by slug '${targetSlug}':`, error);
+        res.status(500).json({ message: 'Server error while updating plan.' });
+    }
+};
+
+
+/**
  * @desc   Delete a subscription plan by its slug (Admin only)
  * @route  DELETE /api/plans
  * @access Private/Admin
@@ -125,5 +223,6 @@ const deletePlan = async (req, res) => {
 
 module.exports = {
     addPlan,
-    deletePlan // Export the new function
+    updatePlan,
+    deletePlan
 };

@@ -11,6 +11,8 @@ router.post('/plan', planController.addPlan);
 // Delete plan route
 router.delete('/plan', planController.deletePlan);
 
+// Update plan route
+router.put('/plan', planController.updatePlan);
 
 
 
