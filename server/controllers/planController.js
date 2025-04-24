@@ -1,5 +1,5 @@
 const Plan = require('../models/Plan');
-const mongoose = require('mongoose'); // Keep mongoose required if needed elsewhere
+const mongoose = require('mongoose');
 
 /**
  * @desc   Add a new subscription plan (Admin only)
@@ -80,6 +80,50 @@ const addPlan = async (req, res) => {
     }
 };
 
+/**
+ * @desc   Delete a subscription plan by its slug (Admin only)
+ * @route  DELETE /api/plans
+ * @access Private/Admin
+ * @param  {string} slug - The unique slug of the plan to delete
+ */
+const deletePlan = async (req, res) => {
+    // Get the plan slug from the route parameters
+    const { slug } = req.body;
+
+    // Basic validation: Check if slug is provided
+    if (!slug) {
+        // Although the route matching usually handles this, it's good practice
+        return res.status(400).json({ message: 'Plan slug is required.' });
+    }
+
+    try {
+        // Find the plan by its unique slug and delete it
+        // findOneAndDelete returns the deleted document or null if not found
+        // Ensure the slug is matched case-insensitively
+        // Assuming slugs are stored lowercase and trimmed (as done in addPlan)
+        const deletedPlan = await Plan.findOneAndDelete({ slug: slug.toLowerCase().trim() });
+
+        // Check if a plan was actually found and deleted
+        if (!deletedPlan) {
+            return res.status(404).json({ message: `Plan with slug '${slug}' not found.` });
+        }
+
+        // Respond with success message
+        res.status(200).json({
+            message: 'Plan deleted successfully.',
+            deletedSlug: slug // Return the slug that was used for deletion
+        });
+
+    } catch (error) {
+        // Log the error for server-side debugging
+        console.error(`Error deleting plan with slug '${slug}':`, error);
+
+        // Generic server error response
+        res.status(500).json({ message: 'Server error while deleting plan.' });
+    }
+};
+
 module.exports = {
-    addPlan
+    addPlan,
+    deletePlan // Export the new function
 };

@@ -6,7 +6,10 @@ const planController = require('../controllers/planController');
 // Optional: Add rate limiting middleware
 
 // Add plan route
-router.post('/add-plan', planController.addPlan);
+router.post('/plan', planController.addPlan);
+
+// Delete plan route
+router.delete('/plan', planController.deletePlan);
 
 
 
