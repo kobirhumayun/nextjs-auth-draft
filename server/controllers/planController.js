@@ -178,6 +178,27 @@ const updatePlan = async (req, res) => {
     }
 };
 
+/**
+ * @desc   Get all available subscription plans
+ * @route  GET /api/all-plans
+ * @access Public or Private (depending on filtering logic, if added)
+ * @query  (Optional query params for filtering/sorting could be added later)
+ */
+const getAllPlans = async (req, res) => {
+    try {
+        const plans = await Plan.find()
+            .sort({ price: 1 })
+            .select('-__v'); // Exclude the version key
+
+        res.status(200).json(plans);
+
+    } catch (error) {
+        // Log the detailed error for server-side debugging
+        console.error('Error fetching plans:', error);
+        // Send a generic error message to the client
+        res.status(500).json({ message: 'Server error while fetching plans.' });
+    }
+};
 
 /**
  * @desc   Delete a subscription plan by its slug (Admin only)
@@ -380,5 +401,6 @@ module.exports = {
     updatePlan,
     deletePlan,
     changePlan,
-    getSubscriptionDetails
+    getSubscriptionDetails,
+    getAllPlans
 };
