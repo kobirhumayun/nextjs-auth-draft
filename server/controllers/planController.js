@@ -349,9 +349,36 @@ const changePlan = async (req, res) => {
     }
 };
 
+/**
+ * @desc   Get current user's subscription details
+ * @route  GET /api/subscriptions/my-details
+ * @access Private
+ */
+const getSubscriptionDetails = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id).populate('planId'); // Populate plan details
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.status(200).json({
+            plan: user.planId,
+            slug: user.slug,
+            status: user.subscriptionStatus,
+            startDate: user.subscriptionStartDate,
+            endDate: user.subscriptionEndDate,
+            trialEndsAt: user.trialEndsAt,
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 module.exports = {
     addPlan,
     updatePlan,
     deletePlan,
-    changePlan
+    changePlan,
+    getSubscriptionDetails
 };
