@@ -1,3 +1,4 @@
+const User = require('../models/User');
 const Plan = require('../models/Plan');
 const mongoose = require('mongoose');
 
@@ -219,6 +220,20 @@ const deletePlan = async (req, res) => {
         // Generic server error response
         res.status(500).json({ message: 'Server error while deleting plan.' });
     }
+};
+
+// Helper function to calculate next billing date (simplified)
+const calculateNextBillingDate = (startingDate, billingCycle) => {
+    const now = new Date(startingDate);
+    if (billingCycle === 'monthly') {
+        now.setMonth(now.getMonth() + 1);
+    } else if (billingCycle === 'annually') {
+        now.setFullYear(now.getFullYear() + 1);
+    } else {
+        // For 'free', 'lifetime', or unknown cycles, set no specific end date
+        return null;
+    }
+    return now;
 };
 
 module.exports = {
