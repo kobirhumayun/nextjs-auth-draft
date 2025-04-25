@@ -236,8 +236,122 @@ const calculateNextBillingDate = (startingDate, billingCycle) => {
     return now;
 };
 
+/**
+ * @desc   Change the user's current subscription plan
+ * @route  POST /api/users/change-plan (Example route, adjust as needed)
+ * @access Private
+ * @body   { newPlanId: string }
+ */
+const changePlan = async (req, res) => {
+    const { newPlanId } = req.body;
+    // Assuming authentication middleware adds user object to req
+    const userId = req.user?._id;
+
+    // Validate userId presence (essential after auth middleware)
+    if (!userId) {
+        // This usually indicates an issue with the auth middleware or route protection
+        return res.status(401).json({ message: 'Authentication error: User not identified.' });
+    }
+
+    // Validate newPlanId format
+    if (!mongoose.Types.ObjectId.isValid(newPlanId)) {
+        return res.status(400).json({ message: 'Invalid Plan ID format.' });
+    }
+
+    try {
+        // Fetch user and the target plan concurrently for efficiency
+        const [user, newPlan] = await Promise.all([
+            User.findById(userId),
+            Plan.findById(newPlanId)
+        ]);
+
+        // --- Validation Checks ---
+        if (!user) {
+            // Should be rare if auth middleware is correct, but good practice
+            return res.status(404).json({ message: 'User not found.' });
+        }
+        if (!newPlan) {
+            return res.status(404).json({ message: `Plan with ID '${newPlanId}' not found.` });
+        }
+
+        // Check if the user is trying to switch to a non-public plan they aren't already on
+        const currentPlanIdString = user.planId?.toString();
+        if (!newPlan.isPublic && currentPlanIdString !== newPlanId) {
+            return res.status(403).json({ message: 'This plan is not publicly available.' }); // 403 Forbidden might be more appropriate
+        }
+
+        // Check if the user is already actively subscribed to this plan
+        let subscriptionStartinDate = user.subscriptionStartDate;
+        if (currentPlanIdString === newPlanId && user.subscriptionStatus === 'active') {
+            subscriptionStartinDate = user.subscriptionEndDate;
+        } else {
+            subscriptionStartinDate = new Date(); // Start from now
+        }
+
+        // --- Payment Processing Placeholder ---
+        // TODO: Implement payment gateway logic here (e.g., Stripe)
+        // if (newPlan.price > 0) {
+        //   1. Check if user has existing payment method or needs to add one.
+        //   2. Create/update Stripe subscription or charge one-time fee.
+        //   3. Handle payment failures gracefully.
+        //   4. Only proceed if payment is successful.
+        //   const paymentSuccessful = await processPayment(user, newPlan);
+        //   if (!paymentSuccessful) {
+        //       return res.status(402).json({ message: 'Payment required or failed.' }); // 402 Payment Required
+        //   }
+        // } else {
+        //    // If moving to a free plan, potentially cancel existing paid subscription in Stripe
+        //    await cancelExistingSubscription(user);
+        // }
+        // --- End Placeholder ---
+
+        // --- Update User Subscription Details ---
+
+        user.planId = newPlan._id;
+        // Determine status based on price (adjust if trials are implemented)
+        user.subscriptionStatus = newPlan.price === 0 ? 'free' : 'active';
+        user.subscriptionStartDate = subscriptionStartinDate;
+        // Calculate next billing date based on the *current time* as the start
+        user.subscriptionEndDate = calculateNextBillingDate(subscriptionStartinDate, newPlan.billingCycle);
+        // Reset trial end date when changing plans (adjust logic if needed)
+        user.trialEndsAt = null;
+
+        // Save the updated user document
+        await user.save();
+
+        // --- Prepare and Send Response ---
+        // Construct response using the already fetched newPlan details
+        res.status(200).json({
+            message: 'Subscription plan changed successfully.',
+            subscription: {
+                // Send the full plan object or selected fields
+                plan: {
+                    _id: newPlan._id,
+                    name: newPlan.name,
+                    slug: newPlan.slug,
+                    price: newPlan.price,
+                    billingCycle: newPlan.billingCycle,
+                    // Add other relevant plan fields if needed by the frontend
+                },
+                status: user.subscriptionStatus,
+                startDate: user.subscriptionStartDate,
+                endDate: user.subscriptionEndDate,
+            }
+        });
+
+    } catch (error) {
+        // Handle potential database errors during find or save
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ message: 'Validation failed during update', errors: messages });
+        }
+        res.status(500).json({ message: 'Server error while changing subscription plan.' });
+    }
+};
+
 module.exports = {
     addPlan,
     updatePlan,
-    deletePlan
+    deletePlan,
+    changePlan
 };
