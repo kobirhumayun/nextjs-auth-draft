@@ -21,6 +21,9 @@ router.get('/my-plan', authenticate, planController.getSubscriptionDetails);
 // Change plan route
 router.post('/change-plan', authenticate, planController.changePlan);
 
+// Get all plans route
+router.get('/all-plans', planController.getAllPlans);
+
 
 // Export the router
 
