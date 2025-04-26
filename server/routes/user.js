@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/user');
 const authController = require('../controllers/authController');
+const { authenticate } = require('../middleware/authMiddleware');
 // Optional: Add input validation middleware (e.g., express-validator)
 // Optional: Add rate limiting middleware
 
@@ -20,6 +21,9 @@ router.post('/refresh-token', userController.refreshAccessToken);
 // --- Password Reset Routes ---
 router.post('/request-password-reset', authController.requestPasswordReset);
 router.post('/reset-password', authController.resetPassword);
+
+// --- Subscription Token Routes ---
+router.post('/generate-subscription-token', authenticate, authController.generateSubscriptionToken);
 
 
 // Export the router
