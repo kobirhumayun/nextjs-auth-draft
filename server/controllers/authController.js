@@ -5,13 +5,12 @@ const { sendNotification } = require('../services/notificationService');
 const bcrypt = require('bcryptjs');
 
 // --- Helper Function to create and save token ---
-const createAndSaveToken = async (userId, type) => {
+const createAndSaveToken = async (userId, type, otpExpiryMinutes) => {
     // --- Best Practice: Handle Resend ---
     // Invalidate previous tokens of the same type for this user
     await Token.deleteMany({ userId, type });
 
     const otp = generateOtp(6); // Generate a 6-digit OTP
-    const otpExpiryMinutes = parseInt(process.env.OTP_EXPIRY_MINUTES || '10', 10); // Use env variable
     const expiresAt = new Date(Date.now() + otpExpiryMinutes * 60 * 1000); // Set expiry
 
     // IMPORTANT: The 'Token' model's pre-save hook handles hashing the 'otp' value automatically
@@ -43,7 +42,8 @@ exports.requestPasswordReset = async (req, res, next) => {
         }
 
         // Generate, hash, and save the OTP
-        const plainOtp = await createAndSaveToken(user._id, 'passwordReset');
+        const otpExpiryMinutes = parseInt(process.env.OTP_EXPIRY_MINUTES || '10', 10); // Use env variable
+        const plainOtp = await createAndSaveToken(user._id, 'passwordReset', otpExpiryMinutes);
 
         // Send OTP via email (using the notification service)
         const subject = 'Your Password Reset OTP';
