@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Token = require('../models/Token');
+const Plan = require('../models/Plan');
 const { generateOtp } = require('../utils/otpUtils');
 const { sendNotification } = require('../services/notificationService');
 const bcrypt = require('bcryptjs');
@@ -138,7 +139,76 @@ const resetPassword = async (req, res, next) => {
     }
 };
 
+// --- Helper Function to create and save subscription token ---
+const createAndSaveSubscriptionToken = async (userId, type, otpExpiryMinutes, billingCycle, slug) => {
+    // --- Best Practice: Handle Resend ---
+    // Invalidate previous tokens of the same type for this user
+    await Token.deleteMany({ userId, type });
+
+    let subscriptionOtp = generateOtp(6); // Generate a 6-digit OTP
+    const expiresAt = new Date(Date.now() + otpExpiryMinutes * 60 * 1000); // Set expiry
+
+    if (billingCycle === 'monthly') {
+        subscriptionOtp = subscriptionOtp + '-m-' + slug;
+    } else if (billingCycle === 'annually') {
+        subscriptionOtp = subscriptionOtp + '-y-' + slug;
+    } else {
+        // For 'free', 'lifetime', or unknown cycles, set no specific end date
+        subscriptionOtp = subscriptionOtp + slug;
+    }
+
+    // IMPORTANT: The 'Token' model's pre-save hook handles hashing the 'subscriptionOtp' value automatically
+    const token = new Token({
+        userId,
+        token: subscriptionOtp, // Store the plain OTP here; it gets hashed before saving
+        type,
+        expiresAt,
+    });
+
+    await token.save();
+
+    return subscriptionOtp; // Return the plain subscriptionOtp for sending
+};
+
+// --- Generate subscription token ---
+const generateSubscriptionToken = async (req, res, next) => {
+    try {
+        const { planId, billingCycle } = req.body;
+        const plan = await Plan.findById(planId);
+        if (!plan) {
+            return res.status(400).json({ message: 'Invalid plan ID.' });
+        }
+
+        // Generate, hash, and save the OTP
+        const otpExpiryMinutes = parseInt(process.env.SUBSCRIPTION_OTP_EXPIRY_MINUTES || '4320', 10); // Use env variable
+        const plainOtp = await createAndSaveSubscriptionToken(req.user._id, 'subscriptionToken', otpExpiryMinutes, billingCycle, plan.slug);
+
+        // Send OTP via email (using the notification service)
+        const subject = 'Your subscription token';
+        const text = `Your subscription token is: ${plainOtp}\nIt is valid for ${process.env.SUBSCRIPTION_OTP_EXPIRY_MINUTES || '72'} hours.`;
+        // Optional HTML version
+        const html = `<p>Your subscription token is: <b>${plainOtp}</b></p><p>It is valid for ${process.env.SUBSCRIPTION_OTP_EXPIRY_MINUTES || '72'} hours.</p>`;
+
+        await sendNotification({
+            method: 'email', // Specify email method
+            user: req.user,
+            subject: subject,
+            text: text,
+            html: html // Optional
+        });
+
+        // --- Best Practice: Consistent Response ---
+        res.status(200).json({ message: 'subscription token has been sent to your email.' });
+
+    } catch (error) {
+        console.error("Error in subscription token:", error);
+        // Pass error to the central error handler
+        next(error);
+    }
+};
+
 module.exports = {
     requestPasswordReset,
-    resetPassword
+    resetPassword,
+    generateSubscriptionToken
 };
