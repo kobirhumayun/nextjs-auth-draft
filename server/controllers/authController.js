@@ -27,7 +27,7 @@ const createAndSaveToken = async (userId, type, otpExpiryMinutes) => {
 };
 
 // --- Request Password Reset ---
-exports.requestPasswordReset = async (req, res, next) => {
+const requestPasswordReset = async (req, res, next) => {
     try {
         const { email } = req.body;
         if (!email) {
@@ -70,7 +70,7 @@ exports.requestPasswordReset = async (req, res, next) => {
 };
 
 // --- Reset Password ---
-exports.resetPassword = async (req, res, next) => {
+const resetPassword = async (req, res, next) => {
     try {
         const { email, otp, newPassword } = req.body;
 
@@ -136,4 +136,9 @@ exports.resetPassword = async (req, res, next) => {
         // Pass error to the central error handler
         next(error);
     }
+};
+
+module.exports = {
+    requestPasswordReset,
+    resetPassword
 };
