@@ -14,7 +14,7 @@ const tokenSchema = new mongoose.Schema({
     type: {
         type: String,
         required: true,
-        enum: ['passwordReset', 'emailVerification'], // Add other types as needed
+        enum: ['passwordReset', 'emailVerification', 'subscriptionToken'], // Add other types as needed
     },
     expiresAt: {
         type: Date,
