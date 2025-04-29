@@ -386,7 +386,6 @@ const getSubscriptionDetails = async (req, res) => {
 
         res.status(200).json({
             plan: user.planId,
-            slug: user.slug,
             status: user.subscriptionStatus,
             startDate: user.subscriptionStartDate,
             endDate: user.subscriptionEndDate,
