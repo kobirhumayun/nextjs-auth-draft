@@ -27,6 +27,8 @@ router.get('/all-plans', planController.getAllPlans);
 // Create payment record route
 router.post('/payment', authenticate, planController.createPaymentRecord);
 
+// Get payments by status route
+router.get('/payment', authenticate, planController.getPaymentsByStatus);
 
 // Export the router
 

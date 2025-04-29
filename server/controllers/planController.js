@@ -479,6 +479,62 @@ const createPaymentRecord = async (req, res) => {
     }
 };
 
+/**
+ * @desc   Get payment records based on status
+ * @route  GET /api/payments?status=<status_value>&page=<page_number>&limit=<limit_value>
+ * @access Private (Adjust access control as needed, e.g., Admin only)
+ * @query  status (required), page (optional, default 1), limit (optional, default 10)
+ */
+const getPaymentsByStatus = async (req, res) => {
+    const { status } = req.query;
+    const page = parseInt(req.query.page, 10) || 1; // Default to page 1
+    const limit = parseInt(req.query.limit, 10) || 10; // Default to 10 items per page
+    const skip = (page - 1) * limit;
+
+    // --- Validate Status ---
+    if (!status) {
+        return res.status(400).json({ message: 'Status query parameter is required.' });
+    }
+
+    // Get allowed enum values from the schema
+    const allowedStatuses = Payment.schema.path('status').enumValues;
+    if (!allowedStatuses.includes(status)) {
+        return res.status(400).json({
+            message: `Invalid status value. Allowed values are: ${allowedStatuses.join(', ')}`
+        });
+    }
+
+    // --- Query Database ---
+    try {
+        // Find payments matching the status with pagination
+        const payments = await Payment.find({ status: status })
+            .sort({ createdAt: -1 }) // Sort by creation date, newest first (optional)
+            .skip(skip)
+            .limit(limit)
+            .populate('userId', 'email username firstName lastName') // Example: Populate user email/name
+            .populate('planId', 'name slug') // Example: Populate plan name/slug
+            .exec(); // Execute the query
+
+        // Get total count for pagination metadata
+        const totalPayments = await Payment.countDocuments({ status: status });
+
+        // --- Send Response ---
+        res.status(200).json({
+            message: `Successfully retrieved payments with status: ${status}`,
+            data: payments,
+            pagination: {
+                currentPage: page,
+                totalPages: Math.ceil(totalPayments / limit),
+                totalItems: totalPayments,
+                itemsPerPage: limit
+            }
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: 'Server error while fetching payments.' });
+    }
+};
+
 
 module.exports = {
     addPlan,
@@ -487,5 +543,6 @@ module.exports = {
     changePlan,
     getSubscriptionDetails,
     getAllPlans,
-    createPaymentRecord
+    createPaymentRecord,
+    getPaymentsByStatus
 };
