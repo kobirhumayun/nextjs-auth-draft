@@ -24,6 +24,9 @@ router.post('/change-plan', authenticate, planController.changePlan);
 // Get all plans route
 router.get('/all-plans', planController.getAllPlans);
 
+// Create payment record route
+router.post('/payment', authenticate, planController.createPaymentRecord);
+
 
 // Export the router
 

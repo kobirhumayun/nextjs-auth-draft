@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Plan = require('../models/Plan');
 const mongoose = require('mongoose');
+const Payment = require('../models/Payment');
 
 /**
  * @desc   Add a new subscription plan (Admin only)
@@ -396,11 +397,96 @@ const getSubscriptionDetails = async (req, res) => {
     }
 };
 
+
+
+/**
+ * @desc   Create a new payment record
+ * @route  POST /api/payments
+ * @access Private (or specific access control based on context, e.g., webhook handler, admin)
+ * @body   { userId, amount, currency, paymentGateway, gatewayTransactionId, purpose, planId?, paymentMethodDetails?, processedAt? }
+ */
+const createPaymentRecord = async (req, res) => {
+    // Destructure required and optional fields from the request body
+    const {
+        amount,
+        currency,
+        paymentGateway,
+        gatewayTransactionId,
+        purpose,
+        planId, // Optional
+        paymentMethodDetails, // Optional
+        processedAt, // Optional (often set when payment is confirmed)
+        invoiceId, // Optional
+        refundedAmount // Optional (usually 0 on creation)
+    } = req.body;
+    const userId = req.user._id
+
+    // --- Basic Input Validation (Optional but Recommended) ---
+    if (!userId || !amount || !currency || !paymentGateway || !gatewayTransactionId || !purpose) {
+        return res.status(400).json({ message: 'Missing required payment fields.' });
+    }
+
+    // Validate ObjectIds if provided
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return res.status(400).json({ message: 'Invalid User ID format.' });
+    }
+    if (planId && !mongoose.Types.ObjectId.isValid(planId)) {
+        return res.status(400).json({ message: 'Invalid Plan ID format.' });
+    }
+
+    // --- Create and Save Payment Document ---
+    try {
+        // Create a new payment document instance
+        const newPayment = new Payment({
+            userId,
+            // Mongoose Decimal128 handles string/number conversion, but ensure input is valid
+            amount: amount,
+            currency: currency.toUpperCase(),
+            paymentGateway: paymentGateway.toLowerCase(),
+            gatewayTransactionId,
+            purpose,
+            planId: planId || null, // Set to null if not provided
+            paymentMethodDetails: paymentMethodDetails || {},
+            invoiceId: invoiceId || null,
+            refundedAmount: refundedAmount || 0.00,
+            processedAt: processedAt ? new Date(processedAt) : new Date() // Convert string date if provided
+            // createdAt and updatedAt are handled automatically by timestamps: true
+        });
+
+        // Save the document to the database
+        const savedPayment = await newPayment.save();
+
+        // Respond with the created payment record
+        res.status(201).json({ // 201 Created status
+            message: 'Payment record created successfully.',
+            payment: savedPayment
+        });
+
+    } catch (error) {
+        // Handle Mongoose validation errors
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ message: 'Validation failed', errors: messages });
+        }
+        // Handle duplicate key error (likely on gatewayTransactionId)
+        if (error.code === 11000) {
+            // Determine which field caused the duplicate error
+            const field = Object.keys(error.keyPattern)[0];
+            return res.status(409).json({ message: `Duplicate entry: A payment record with this ${field} already exists.` });
+        }
+
+        // Handle other potential errors (e.g., database connection issues)
+        res.status(500).json({ message: 'Server error while creating payment record.' });
+    }
+};
+
+
 module.exports = {
     addPlan,
     updatePlan,
     deletePlan,
     changePlan,
     getSubscriptionDetails,
-    getAllPlans
+    getAllPlans,
+    createPaymentRecord
 };
