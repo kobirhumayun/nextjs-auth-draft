@@ -22,8 +22,6 @@ router.post('/refresh-token', userController.refreshAccessToken);
 router.post('/request-password-reset', authController.requestPasswordReset);
 router.post('/reset-password', authController.resetPassword);
 
-// --- Subscription Token Routes ---
-router.post('/generate-subscription-token', authenticate, authController.generateSubscriptionToken);
 
 
 // Export the router
