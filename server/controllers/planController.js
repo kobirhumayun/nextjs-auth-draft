@@ -302,6 +302,16 @@ const changePlan = async (req, res) => {
         if (!payment) {
             return res.status(404).json({ message: `Payment record with ID '${paymentId}' not found.` });
         }
+        if (payment.status === 'succeeded') {
+            return res.status(403).json({ message: 'This payment has already been used.' }); // 403 Forbidden might be more appropriate
+        }
+        if (user._id.toString() !== payment.userId.toString()) {
+            return res.status(403).json({ message: 'This payment not eligible for this user.' }); // 403 Forbidden might be more appropriate
+        }
+        if (newPlan.price !== 0 && payment.amount !== newPlan.price) {
+            return res.status(403).json({ message: `This payment ${payment.amount} does not match the plan price ${newPlan.price}.` }); // 403 Forbidden might be more appropriate
+        }
+
 
         // Check if the user is trying to switch to a non-public plan they aren't already on
         const currentPlanIdString = user.planId?.toString();
@@ -330,6 +340,7 @@ const changePlan = async (req, res) => {
 
         // Save the updated user document
         await user.save();
+        await payment.updateOne({ status: 'succeeded' }); // Mark
 
         // --- Prepare and Send Response ---
         // Construct response using the already fetched newPlan details
