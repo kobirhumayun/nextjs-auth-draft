@@ -90,8 +90,10 @@ const generateAccessToken = (user) => {
     return jwt.sign(
         {
             _id: user._id,
-            // Include other non-sensitive info if needed (e.g., roles)
-            // username: user.username
+            // Include non-sensitive info
+            role: user.roles,
+            plan: user?.planId?.slug ? user?.planId?.slug : "free"
+
         },
         ACCESS_TOKEN_SECRET,
         { expiresIn: ACCESS_TOKEN_EXPIRY }
@@ -159,8 +161,7 @@ const loginUser = async (req, res) => {
         // Select '+password_hash' if it's excluded by default in your schema
         const user = await User.findOne({
             $or: [{ username: identifier }, { email: identifier }]
-        }).select('+password_hash +refresh_token'); // Include fields needed for login
-
+        }).select('+password_hash +refresh_token').populate('planId'); // Include fields needed for login
         if (!user) {
             return res.status(404).json({ message: 'Invalid credentials.' }); // Generic message
         }
@@ -265,7 +266,7 @@ const refreshAccessToken = async (req, res) => {
         const decoded = jwt.verify(incomingRefreshToken, REFRESH_TOKEN_SECRET);
 
         // Find the user associated with the token ID
-        const user = await User.findById(decoded._id).select('+refresh_token'); // Ensure refreshToken is selected
+        const user = await User.findById(decoded._id).select('+refresh_token').populate('planId'); // Ensure refreshToken is selected
 
         // Check if user exists and if the incoming token matches the one stored in the DB
         if (!user || user.refresh_token !== incomingRefreshToken) {
