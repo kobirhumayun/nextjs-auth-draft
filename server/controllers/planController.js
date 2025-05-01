@@ -265,12 +265,10 @@ const calculateNextBillingDate = (startingDate, billingCycle) => {
  * @body   { newPlanId: string }
  */
 const changePlan = async (req, res) => {
-    const { newPlanId } = req.body;
-    // Assuming authentication middleware adds user object to req
-    const userId = req.user?._id;
+    const { appliedUserId, newPlanId } = req.body;
 
-    // Validate userId presence (essential after auth middleware)
-    if (!userId) {
+    // Validate appliedUserId presence
+    if (!appliedUserId) {
         // This usually indicates an issue with the auth middleware or route protection
         return res.status(401).json({ message: 'Authentication error: User not identified.' });
     }
@@ -283,7 +281,7 @@ const changePlan = async (req, res) => {
     try {
         // Fetch user and the target plan concurrently for efficiency
         const [user, newPlan] = await Promise.all([
-            User.findById(userId),
+            User.findById(appliedUserId),
             Plan.findById(newPlanId)
         ]);
 
@@ -309,23 +307,6 @@ const changePlan = async (req, res) => {
         } else {
             subscriptionStartinDate = new Date(); // Start from now
         }
-
-        // --- Payment Processing Placeholder ---
-        // TODO: Implement payment gateway logic here (e.g., Stripe)
-        // if (newPlan.price > 0) {
-        //   1. Check if user has existing payment method or needs to add one.
-        //   2. Create/update Stripe subscription or charge one-time fee.
-        //   3. Handle payment failures gracefully.
-        //   4. Only proceed if payment is successful.
-        //   const paymentSuccessful = await processPayment(user, newPlan);
-        //   if (!paymentSuccessful) {
-        //       return res.status(402).json({ message: 'Payment required or failed.' }); // 402 Payment Required
-        //   }
-        // } else {
-        //    // If moving to a free plan, potentially cancel existing paid subscription in Stripe
-        //    await cancelExistingSubscription(user);
-        // }
-        // --- End Placeholder ---
 
         // --- Update User Subscription Details ---
 
