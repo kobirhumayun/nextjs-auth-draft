@@ -67,9 +67,9 @@ const userSchema = new Schema({
         index: true
     },
     roles: {
-        type: [String],
+        type: String,
         enum: ['user', 'admin', 'editor', 'support'], // Define roles
-        default: ['user'],
+        default: 'user',
         index: true
     },
     isEmailVerified: {
