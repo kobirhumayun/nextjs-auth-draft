@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const planController = require('../controllers/planController');
 const { authenticate } = require('../middleware/authMiddleware');
+const { authorize } = require('../middleware/casbinAuthorize');
 
 // Optional: Add input validation middleware (e.g., express-validator)
 // Optional: Add rate limiting middleware
@@ -28,7 +29,7 @@ router.get('/all-plans', planController.getAllPlans);
 router.post('/payment', authenticate, planController.createPaymentRecord);
 
 // Get payments by status route
-router.get('/payment', authenticate, planController.getPaymentsByStatus);
+router.get('/payment', authenticate, authorize("payment"), planController.getPaymentsByStatus);
 
 // Export the router
 
