@@ -265,7 +265,7 @@ const calculateNextBillingDate = (startingDate, billingCycle) => {
  * @body   { appliedUserId: string, newPlanId: string}
  */
 const changePlan = async (req, res) => {
-    const { appliedUserId, newPlanId } = req.body;
+    const { appliedUserId, newPlanId, paymentId } = req.body;
 
     // Validate appliedUserId presence
     if (!appliedUserId) {
@@ -278,11 +278,17 @@ const changePlan = async (req, res) => {
         return res.status(400).json({ message: 'Invalid Plan ID format.' });
     }
 
+    // Validate paymentId format
+    if (!mongoose.Types.ObjectId.isValid(paymentId)) {
+        return res.status(400).json({ message: 'Invalid Payment ID format.' });
+    }
+
     try {
         // Fetch user and the target plan concurrently for efficiency
-        const [user, newPlan] = await Promise.all([
+        const [user, newPlan, payment] = await Promise.all([
             User.findById(appliedUserId),
-            Plan.findById(newPlanId)
+            Plan.findById(newPlanId),
+            Payment.findById(paymentId)
         ]);
 
         // --- Validation Checks ---
@@ -292,6 +298,9 @@ const changePlan = async (req, res) => {
         }
         if (!newPlan) {
             return res.status(404).json({ message: `Plan with ID '${newPlanId}' not found.` });
+        }
+        if (!payment) {
+            return res.status(404).json({ message: `Payment record with ID '${paymentId}' not found.` });
         }
 
         // Check if the user is trying to switch to a non-public plan they aren't already on
