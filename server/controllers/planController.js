@@ -262,7 +262,7 @@ const calculateNextBillingDate = (startingDate, billingCycle) => {
  * @desc   Change the user's current subscription plan
  * @route  POST /api/users/change-plan (Example route, adjust as needed)
  * @access Private
- * @body   { newPlanId: string }
+ * @body   { appliedUserId: string, newPlanId: string}
  */
 const changePlan = async (req, res) => {
     const { appliedUserId, newPlanId } = req.body;
