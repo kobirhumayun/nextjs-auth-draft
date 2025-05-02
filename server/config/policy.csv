@@ -1,7 +1,7 @@
 # Policy Definitions (p, role, plan, resource, action, effect)
 
 # Admin Role: Has access to everything, regardless of plan/domain ('*' matches any domain)
-p, admin, *, *, *, allow
+p, admin, *, *, (read|write|update|delete), allow
 
 # Consumer Role Policies based on Plan (Domain)
 
