@@ -38,5 +38,5 @@ p, consumer, enterprise, resource5, (read|write|update|delete), allow
 # Role Assignments (g, user_id, role) - Add your actual user IDs here
 
 # Example User Assignments
-g, user, consumer # regular user
-g, admin, admin  # This user is an admin
+g, user, consumer
+g, admin, admin
