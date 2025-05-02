@@ -6,6 +6,7 @@ const connectDB = require('./config/database');
 const userRoutes = require('./routes/user');
 const authRoutes = require('./routes/authRoutes');
 const planRoutes = require('./routes/plan');
+const { initializeEnforcer } = require('./services/casbin');
 
 
 dotenv.config();
@@ -52,6 +53,7 @@ const startServer = async () => {
     try {
         // 1. Connect to Database (and wait for it)
         await connectDB();
+        initializeEnforcer();
 
         // 2. Start Listening for Requests
         const server = app.listen(port, () => {
