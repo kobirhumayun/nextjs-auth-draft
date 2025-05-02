@@ -22,15 +22,8 @@ const authenticate = async (req, res, next) => {
         // Verify the token
         const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET);
 
-        // Find the user associated with the token ID
-        const user = await User.findById(decoded._id).select('_id username email');
-
-        if (!user) {
-            return res.status(404).json({ message: 'User not found.' });
-        }
-
         // Attach the user object to the request
-        req.user = user;
+        req.user = decoded;
 
         // Proceed to the next middleware
         next();
