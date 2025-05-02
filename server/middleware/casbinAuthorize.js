@@ -34,17 +34,12 @@ const authorize = (resource, explicitAction = null) => {
         // IMPORTANT: Ensure your JWT authentication middleware (e.g., passport-jwt, express-jwt)
         // runs BEFORE this middleware and populates req.user correctly.
         if (!req.user || !req.user._id || !req.user.plan) {
-            console.log('req.user:', req.user);
-            console.log('req.id:', req.user._id);
-            console.log('req.plan:', req.user.plan);
-
             console.warn('Authorization middleware requires req.user with id and plan.');
             // Return 401 Unauthorized if user info isn't present (authentication issue)
             // Or 403 Forbidden if technically authenticated but missing required attributes for authorization
             return res.status(401).json({ message: 'Unauthorized: User information missing.' });
         }
-        const sub = req.user.roles;      // User ID from JWT payload
-        console.log('sub:', sub)
+        const sub = req.user.role;      // User ID from JWT payload
         const dom = req.user.plan;    // User's plan from JWT payload
 
         // --- 2. Determine Object (Resource) ---
