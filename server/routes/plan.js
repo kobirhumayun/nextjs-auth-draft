@@ -8,19 +8,19 @@ const { authorize } = require('../middleware/casbinAuthorize');
 // Optional: Add rate limiting middleware
 
 // Add plan route
-router.post('/plan', authenticate, planController.addPlan);
+router.post('/plan', authenticate, authorize("admin"), planController.addPlan);
 
 // Delete plan route
-router.delete('/plan', authenticate, planController.deletePlan);
+router.delete('/plan', authenticate, authorize("admin"), planController.deletePlan);
 
 // Update plan route
-router.put('/plan', authenticate, planController.updatePlan);
+router.put('/plan', authenticate, authorize("admin"), planController.updatePlan);
 
 // Get subscription details route
 router.get('/my-plan', authenticate, planController.getSubscriptionDetails);
 
 // Change plan route
-router.post('/change-plan', authenticate, planController.changePlan);
+router.post('/change-plan', authenticate, authorize("admin"), planController.changePlan);
 
 // Get all plans route
 router.get('/all-plans', planController.getAllPlans);
@@ -29,7 +29,7 @@ router.get('/all-plans', planController.getAllPlans);
 router.post('/payment', authenticate, planController.createPaymentRecord);
 
 // Get payments by status route
-router.get('/payment', authenticate, authorize("payment"), planController.getPaymentsByStatus);
+router.get('/payment', authenticate, authorize("admin"), planController.getPaymentsByStatus);
 
 // Export the router
 
