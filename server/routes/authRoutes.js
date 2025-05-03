@@ -8,13 +8,29 @@ const { reloadPolicies } = require('../services/casbin');
 router.put('/reload-policies', authenticate, authorize("admin"), async (req, res) => {
     try {
         await reloadPolicies();
-        res.json({ message: 'Policies reloaded successfully.' });
+        res.json({ message: 'Policies reloaded successfully. by', user: req.user });
     } catch (error) {
         res.status(500).json({ message: 'Error reloading policies.', error: error.message });
     }
-}
-)
-router.get('/user-info', authenticate, (req, res) => {
+});
+
+router.post('/basic-info', authenticate, authorize("basic"), async (req, res) => {
+    res.json({ message: 'This is a protected route. accessed by', user: req.user });
+});
+
+router.post('/professional-info', authenticate, authorize("professional"), async (req, res) => {
+    res.json({ message: 'This is a protected route. accessed by', user: req.user });
+});
+
+router.post('/business-info', authenticate, authorize("business"), async (req, res) => {
+    res.json({ message: 'This is a protected route. accessed by', user: req.user });
+});
+
+router.post('/enterprise-info', authenticate, authorize("enterprise"), async (req, res) => {
+    res.json({ message: 'This is a protected route. accessed by', user: req.user });
+});
+
+router.get('/user-info', authenticate, async (req, res) => {
     res.json({ message: 'This is a protected route.', user: req.user });
 });
 
