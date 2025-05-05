@@ -7,6 +7,7 @@ const userRoutes = require('./routes/user');
 const authRoutes = require('./routes/authRoutes');
 const planRoutes = require('./routes/plan');
 const { initializeEnforcer } = require('./services/casbin');
+const { scheduleSubscriptionExpiryCheck } = require('./jobs/subscriptionJobs');
 
 
 dotenv.config();
@@ -54,6 +55,7 @@ const startServer = async () => {
         // 1. Connect to Database (and wait for it)
         await connectDB();
         initializeEnforcer();
+        scheduleSubscriptionExpiryCheck();
 
         // 2. Start Listening for Requests
         const server = app.listen(port, () => {
