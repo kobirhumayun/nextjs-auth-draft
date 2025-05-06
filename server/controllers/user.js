@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Plan = require('../models/Plan');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -125,6 +126,8 @@ const generateRefreshToken = (user) => {
  */
 const generateAccessAndRefereshTokens = async (user) => {
     try {
+        // *** Check and Update Subscription Status BEFORE generating token ***
+        await checkAndUpdateExpiredStatus(user);
         const accessToken = generateAccessToken(user);
         const refreshToken = generateRefreshToken(user);
 
@@ -307,6 +310,40 @@ const refreshAccessToken = async (req, res) => {
         res.status(500).json({ message: 'Error refreshing access token.', error: error.message });
     }
 };
+
+const checkAndUpdateExpiredStatus = async (user) => {
+    const now = new Date();
+    let updated = false;
+
+    if ((user.subscriptionStatus === 'active' && user.subscriptionEndDate && user.subscriptionEndDate <= now) || (user.subscriptionStatus === 'trialing' && user.trialEndsAt && user.trialEndsAt <= now)) {
+        console.log(`Login Check: Updating expired status for user ${user.email}`);
+        const defaultExpiredStatus = 'canceled'; // Match cron job logic
+        const revertToFree = true; // Match cron job logic
+        let updateData = { subscriptionStatus: defaultExpiredStatus };
+
+        if (revertToFree) {
+            const freePlan = await Plan.findOne({ slug: 'free' }).select('_id');
+            if (freePlan) {
+                updateData = {
+                    planId: freePlan._id,
+                    subscriptionStatus: 'free',
+                    subscriptionStartDate: now,
+                    subscriptionEndDate: null,
+                    trialEndsAt: null,
+                };
+            } else {
+                console.warn('Login Check: Default "free" plan not found.');
+                // Stick with default expired status if free plan not found
+            }
+        }
+
+        // Update the user object directly
+        Object.assign(user, updateData);
+        await user.save();
+        updated = true;
+    }
+    return updated; // Return true if status was updated
+}
 
 module.exports = {
     registerUser,
