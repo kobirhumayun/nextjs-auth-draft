@@ -8,6 +8,8 @@ const authRoutes = require('./routes/authRoutes');
 const planRoutes = require('./routes/plan');
 const { initializeEnforcer } = require('./services/casbin');
 const { scheduleSubscriptionExpiryCheck } = require('./jobs/subscriptionJobs');
+const AppError = require('./utils/AppError');
+const globalErrorHandler = require('./middleware/errorHandler');
 
 
 dotenv.config();
@@ -42,12 +44,13 @@ app.use('/api/auth', authRoutes);
 app.use('/api/plans', planRoutes);
 
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).send('Something broke!');
+// Handle 404 Not Found for any routes not matched above
+app.use((req, res, next) => {
+    next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });
 
+// Global Error Handling Middleware (MUST BE LAST)
+app.use(globalErrorHandler);
 
 // --- Start Server Function ---
 const startServer = async () => {
