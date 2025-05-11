@@ -1,4 +1,5 @@
 const express = require('express');
+const helmet = require('helmet');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
@@ -11,11 +12,12 @@ const { scheduleSubscriptionExpiryCheck } = require('./jobs/subscriptionJobs');
 const AppError = require('./utils/AppError');
 const globalErrorHandler = require('./middleware/errorHandler');
 
-
 dotenv.config();
+const port = process.env.PORT || 5000;
 
 const app = express();
-const port = process.env.PORT || 5000;
+// Secure HTTP headers
+app.use(helmet());
 
 // Middleware
 app.use(
