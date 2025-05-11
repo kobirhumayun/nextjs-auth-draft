@@ -3,14 +3,20 @@ const router = express.Router();
 const userController = require('../controllers/user');
 const authController = require('../controllers/authController');
 const { authenticate } = require('../middleware/authMiddleware');
-// Optional: Add input validation middleware (e.g., express-validator)
+const {
+    registerValidationRules,
+    loginValidationRules,
+    requestPasswordResetValidationRules,
+    handleValidationErrors
+} = require('../validators/validatorsIndex'); // Adjust path as needed
+
 // Optional: Add rate limiting middleware
 
 // User registration route
-router.post('/register', userController.registerUser);
+router.post('/register', registerValidationRules(), handleValidationErrors, userController.registerUser);
 
 // User login route
-router.post('/login', userController.loginUser);
+router.post('/login', loginValidationRules(), handleValidationErrors, userController.loginUser);
 
 // User logout route
 router.post('/logout', userController.logoutUser);
@@ -19,7 +25,7 @@ router.post('/logout', userController.logoutUser);
 router.post('/refresh-token', userController.refreshAccessToken);
 
 // --- Password Reset Routes ---
-router.post('/request-password-reset', authController.requestPasswordReset);
+router.post('/request-password-reset', requestPasswordResetValidationRules(), handleValidationErrors, authController.requestPasswordReset);
 router.post('/reset-password', authController.resetPassword);
 
 
