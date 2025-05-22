@@ -76,22 +76,6 @@ const userSchema = new Schema({
         type: Boolean,
         default: false
     },
-    emailVerificationToken: {
-        type: String,
-        select: false // Usually sensitive
-    },
-    emailVerificationExpires: {
-        type: Date,
-        select: false
-    },
-    resetPasswordToken: {
-        type: String,
-        select: false
-    },
-    resetPasswordExpires: {
-        type: Date,
-        select: false
-    },
     authProvider: {
         type: String,
         enum: ['local', 'google', 'facebook', 'github'], // Add providers as needed
