@@ -1,9 +1,7 @@
 const User = require('../models/User');
 const Token = require('../models/Token');
-const Plan = require('../models/Plan');
 const { generateOtp } = require('../utils/otpUtils');
 const { sendNotification } = require('../services/notificationService');
-const bcrypt = require('bcryptjs');
 
 // --- Helper Function to create and save token ---
 const createAndSaveToken = async (userId, type, otpExpiryMinutes) => {
