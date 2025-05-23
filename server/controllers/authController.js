@@ -79,8 +79,6 @@ const resetPassword = async (req, res, next) => {
             return res.status(400).json({ message: 'Email, OTP, and new password are required' });
         }
 
-        // --- TODO: Add password complexity validation here ---
-
         const user = await User.findOne({ email });
         if (!user) {
             // Although unlikely if they got this far, handle it.
@@ -105,13 +103,8 @@ const resetPassword = async (req, res, next) => {
             return res.status(400).json({ message: 'Invalid or expired OTP.' });
         }
 
-        // --- Success: Update the user's password ---
         // The User model's pre-save hook should handle hashing the new password
-        // to be implement pre-save hook
-        // Hash the password
-        const saltRounds = 10;
-        const password_hash = await bcrypt.hash(newPassword, saltRounds);
-        user.password_hash = password_hash;
+        user.password_hash = newPassword;
         await user.save();
 
         // --- Best Practice: Invalidate the token immediately after use ---
