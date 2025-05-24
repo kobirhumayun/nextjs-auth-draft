@@ -30,6 +30,8 @@ const limiter = rateLimit({
 
 // User registration route
 router.post('/register',
+    speedLimiter,
+    limiter,
     registerValidationRules(),
     handleValidationErrors,
     userController.registerUser);
@@ -53,10 +55,14 @@ router.post('/refresh-token',
 
 // --- Password Reset Routes ---
 router.post('/request-password-reset',
+    speedLimiter,
+    limiter,
     requestPasswordResetValidationRules(),
     handleValidationErrors,
     authController.requestPasswordReset);
 router.post('/reset-password',
+    speedLimiter,
+    limiter,
     resetPasswordValidationRules(),
     handleValidationErrors,
     authController.resetPassword);
