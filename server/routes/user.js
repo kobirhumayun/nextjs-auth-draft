@@ -33,7 +33,7 @@ router.post('/register', registerValidationRules(), handleValidationErrors, user
 router.post('/login', speedLimiter, limiter, loginValidationRules(), handleValidationErrors, userController.loginUser);
 
 // User logout route
-router.post('/logout', userController.logoutUser);
+router.post('/logout', authenticate, userController.logoutUser);
 
 // Refresh access token route
 router.post('/refresh-token', userController.refreshAccessToken);
