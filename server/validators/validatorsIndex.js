@@ -46,6 +46,7 @@ module.exports = {
     registerValidationRules: authValidators.registerValidationRules,
     loginValidationRules: authValidators.loginValidationRules,
     requestPasswordResetValidationRules: authValidators.requestPasswordResetValidationRules,
+    resetPasswordValidationRules: authValidators.resetPasswordValidationRules,
     paymentValidationRules: paymentValidators.paymentValidationRules,
     planValidationRules: planValidators.planValidationRules,
     changePlanValidationRules: planValidators.changePlanValidationRules,

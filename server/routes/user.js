@@ -9,6 +9,7 @@ const {
     registerValidationRules,
     loginValidationRules,
     requestPasswordResetValidationRules,
+    resetPasswordValidationRules,
     handleValidationErrors
 } = require('../validators/validatorsIndex'); // Adjust path as needed
 
@@ -56,6 +57,8 @@ router.post('/request-password-reset',
     handleValidationErrors,
     authController.requestPasswordReset);
 router.post('/reset-password',
+    resetPasswordValidationRules(),
+    handleValidationErrors,
     authController.resetPassword);
 
 

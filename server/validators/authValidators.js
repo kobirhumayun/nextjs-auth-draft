@@ -5,6 +5,7 @@ const {
     isStrongPassword,
     isLength,
     isAlphanumericField,
+    isNumericField,
 } = require('./commonValidators');
 
 const registerValidationRules = () => {
@@ -34,9 +35,17 @@ const requestPasswordResetValidationRules = () => {
         isEmailField('email'),
     ];
 };
+const resetPasswordValidationRules = () => {
+    return [
+        isEmailField('email'),
+        isStrongPassword('newPassword'),
+        isNumericField('otp'),
+    ];
+};
 
 module.exports = {
     registerValidationRules,
     loginValidationRules,
     requestPasswordResetValidationRules,
+    resetPasswordValidationRules,
 };
