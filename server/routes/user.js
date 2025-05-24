@@ -26,24 +26,38 @@ const limiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false
 });
+
 // User registration route
-router.post('/register', registerValidationRules(), handleValidationErrors, userController.registerUser);
+router.post('/register',
+    registerValidationRules(),
+    handleValidationErrors,
+    userController.registerUser);
 
 // User login route
-router.post('/login', speedLimiter, limiter, loginValidationRules(), handleValidationErrors, userController.loginUser);
+router.post('/login',
+    speedLimiter,
+    limiter,
+    loginValidationRules(),
+    handleValidationErrors,
+    userController.loginUser);
 
 // User logout route
-router.post('/logout', authenticate, userController.logoutUser);
+router.post('/logout',
+    authenticate,
+    userController.logoutUser);
 
 // Refresh access token route
-router.post('/refresh-token', userController.refreshAccessToken);
+router.post('/refresh-token',
+    userController.refreshAccessToken);
 
 // --- Password Reset Routes ---
-router.post('/request-password-reset', requestPasswordResetValidationRules(), handleValidationErrors, authController.requestPasswordReset);
-router.post('/reset-password', authController.resetPassword);
+router.post('/request-password-reset',
+    requestPasswordResetValidationRules(),
+    handleValidationErrors,
+    authController.requestPasswordReset);
+router.post('/reset-password',
+    authController.resetPassword);
 
 
-
-// Export the router
 
 module.exports = router;
