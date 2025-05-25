@@ -2,6 +2,8 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const slowDown = require('express-slow-down');
 const router = express.Router();
+
+// --- Controller & Middleware Imports ---
 const userController = require('../controllers/user');
 const authController = require('../controllers/authController');
 const { authenticate } = require('../middleware/authMiddleware');
@@ -11,62 +13,103 @@ const {
     requestPasswordResetValidationRules,
     resetPasswordValidationRules,
     handleValidationErrors
-} = require('../validators/validatorsIndex'); // Adjust path as needed
+} = require('../validators/validatorsIndex');
 
-// Slow down brute-force attempts
-const speedLimiter = slowDown({
-    windowMs: 60 * 1000,       // 1 minute
-    delayMs: () => 1000,         // every request over the limit is delayed by 1 s
-    maxDelayMs: 5 * 1000         // cap the delay at 5 s (optional)
+// --- Middleware Configurations ---
+
+/**
+ * @description Slows down responses for sensitive endpoints after a few attempts
+ * to mitigate brute-force attacks.
+ */
+const authSlowDown = slowDown({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    delayAfter: 5,            // Start delaying after 5 requests within windowMs
+    delayMs: (hits) => hits * 100, // Increment delay by 100ms for each request after delayAfter
+    maxDelayMs: 3000,         // Cap the delay at 3 seconds
 });
 
-// Final rate limiting
-const limiter = rateLimit({
-    windowMs: 60 * 1000,       // 1 minute
-    max: 5,                    // limit each IP to 5 requests per windowMs
-    standardHeaders: true,
-    legacyHeaders: false
+/**
+ * @description Rate limit for authentication actions (login, register, password reset).
+ * Limits the number of requests per IP within a time window.
+ */
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10,                  // Limit each IP to 10 requests per windowMs
+    standardHeaders: 'draft-7', // Use RFC 7231 / IETF draft 7 standard headers
+    legacyHeaders: false,       // Disable X-RateLimit-* headers
+    message: { error: 'Too many attempts from this IP, please try again after 15 minutes.' }, // Send JSON response
+    handler: (req, res, next, options) => { // Custom handler for logging/actions
+        // console.warn(`Rate limit exceeded for IP: ${req.ip}`); // Optional: Log exceeded attempts
+        res.status(options.statusCode).send(options.message);
+    }
 });
 
-// User registration route
+/**
+ * @description Rate limit for refreshing tokens. Allows more frequent requests
+ * than auth actions but still provides protection.
+ */
+const refreshLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000,  // 5 minutes
+    max: 20,                  // Limit to 20 requests per 5 minutes
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    message: { error: 'Too many refresh requests, please try again later.' }
+});
+
+// --- Middleware Bundles ---
+
+// Combine slowdown and rate limiting for public auth routes
+const publicAuthProtection = [authSlowDown, authLimiter];
+
+// --- Route Definitions ---
+
+// ## Authentication & Registration
+
+// User Registration Route
 router.post('/register',
-    speedLimiter,
-    limiter,
+    ...publicAuthProtection, // Apply slowdown & rate limit
     registerValidationRules(),
     handleValidationErrors,
-    userController.registerUser);
+    userController.registerUser
+);
 
-// User login route
+// User Login Route
 router.post('/login',
-    speedLimiter,
-    limiter,
+    ...publicAuthProtection, // Apply slowdown & rate limit
     loginValidationRules(),
     handleValidationErrors,
-    userController.loginUser);
+    userController.loginUser
+);
 
-// User logout route
+// User Logout Route (Requires authentication, less likely to be brute-forced)
 router.post('/logout',
-    authenticate,
-    userController.logoutUser);
+    authenticate, // Ensure user is logged in
+    userController.logoutUser
+);
 
-// Refresh access token route
+// Refresh Access Token Route
 router.post('/refresh-token',
-    userController.refreshAccessToken);
+    refreshLimiter, // Apply specific limiter for token refreshes
+    userController.refreshAccessToken
+);
 
-// --- Password Reset Routes ---
+
+// ## Password Reset
+
+// Request Password Reset Route
 router.post('/request-password-reset',
-    speedLimiter,
-    limiter,
+    ...publicAuthProtection, // Apply slowdown & rate limit
     requestPasswordResetValidationRules(),
     handleValidationErrors,
-    authController.requestPasswordReset);
+    authController.requestPasswordReset
+);
+
+// Reset Password Route
 router.post('/reset-password',
-    speedLimiter,
-    limiter,
+    ...publicAuthProtection, // Apply slowdown & rate limit (consider if a token is used - might need different limits)
     resetPasswordValidationRules(),
     handleValidationErrors,
-    authController.resetPassword);
-
-
+    authController.resetPassword
+);
 
 module.exports = router;
