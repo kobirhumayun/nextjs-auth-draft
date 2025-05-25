@@ -39,7 +39,7 @@ const resetPasswordValidationRules = () => {
     return [
         isEmailField('email'),
         isStrongPassword('newPassword'),
-        isNumericField('otp'),
+        isLength('otp', { min: 6, max: 6 }),
     ];
 };
 
