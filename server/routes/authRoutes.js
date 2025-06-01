@@ -3,7 +3,9 @@ const router = express.Router();
 const { authenticate } = require('../middleware/authMiddleware');
 const { authorize } = require('../middleware/casbinAuthorize');
 const { reloadPolicies } = require('../services/casbin');
-const User = require('../models/User');
+
+// --- Controller & Middleware Imports ---
+const userController = require('../controllers/user');
 
 // Example of a protected route
 router.put('/reload-policies',
@@ -21,36 +23,7 @@ router.put('/reload-policies',
 router.get('/user-profile',
     authenticate,
     authorize("admin"),
-    async (req, res) => {
-        try {
-
-            const { identifier } = req.query;
-
-            if (!identifier) {
-                return res.status(400).json({ message: 'Please provide a username or email in the query parameters (e.g., /user-profile?identifier=your_username_or_email).' });
-            }
-
-            // Find user by username or email
-            // Ensure you have database indexes on 'username' and 'email' fields for performance.
-            const user = await User.findOne({
-                $or: [{ username: identifier }, { email: identifier }]
-            }).populate('planId');
-
-            if (!user) {
-                return res.status(404).json({ message: 'User not found.' });
-            }
-
-            res.status(200).json({
-                message: 'User profile fetched successfully.',
-                user
-            });
-
-        } catch (error) {
-            // Log the error for debugging purposes on the server
-            console.error('Error fetching user profile:', error);
-            res.status(500).json({ message: 'Error fetching user profile.', error: error.message });
-        }
-    }
+    userController.getUserProfile
 );
 
 router.post('/basic-info',
