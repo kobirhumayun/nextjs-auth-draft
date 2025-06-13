@@ -26,6 +26,12 @@ router.get('/user-profile',
     userController.getUserProfile
 );
 
+router.patch('/user-profile/:userId',
+    authenticate,
+    authorize("admin"),
+    userController.updateUserProfileByAdmin
+);
+
 router.post('/basic-info',
     authenticate,
     authorize("basic"),

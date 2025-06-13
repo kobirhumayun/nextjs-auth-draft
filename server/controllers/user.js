@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const { isValidObjectId } = require('mongoose');
 
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
 const COOKIE_OPTIONS = {
@@ -216,10 +217,88 @@ const getUserProfile = async (req, res) => {
     }
 }
 
+/**
+ * @desc   Update user profile based on identifier
+ * @route  PATCH /api/auth/user-profile/_id
+ * @access Private (Adjust access control as needed, e.g., Admin only)
+ */
+
+const updateUserProfileByAdmin = async (req, res) => {
+    const { userId } = req.params;
+    const updateData = req.body;
+
+    // 1. Validate userId
+    if (!isValidObjectId(userId)) {
+        return res.status(400).json({ message: 'Invalid user ID format.' });
+    }
+
+    // 2. Basic Validation for updateData
+    if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ message: 'No update data provided.' });
+    }
+
+    // 3. Define allowed fields for an admin to update
+    //    (Prevents unwanted fields like '_id' or 'password' from being directly updated here)
+    const allowedUpdates = ['username', 'email', 'firstName', 'lastName', 'profilePictureUrl', 'planId', 'subscriptionStatus', 'subscriptionStartDate', 'subscriptionEndDate', 'trialEndsAt', 'roles', 'isActive' /*, other fields as needed */];
+    const requestedUpdates = Object.keys(updateData);
+
+    const isValidOperation = requestedUpdates.every(field => allowedUpdates.includes(field));
+
+    if (!isValidOperation) {
+        return res.status(400).json({ message: 'Invalid update fields provided.' });
+    }
+
+    try {
+        // 4. Check for uniqueness if username or email is being updated
+        if (updateData.username) {
+            const existingUserByUsername = await User.findOne({ username: updateData.username, _id: { $ne: userId } });
+            if (existingUserByUsername) {
+                return res.status(409).json({ message: 'Username is already taken by another user.' });
+            }
+        }
+        if (updateData.email) {
+            const existingUserByEmail = await User.findOne({ email: updateData.email, _id: { $ne: userId } });
+            if (existingUserByEmail) {
+                return res.status(409).json({ message: 'Email is already registered to another user.' });
+            }
+        }
+
+        // 5. Find the user and update their profile
+        //    - { new: true } returns the modified document rather than the original.
+        //    - { runValidators: true } ensures that schema validations are applied during the update.
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { $set: updateData }, // Use $set to only update provided fields
+            { new: true, runValidators: true, context: 'query' }
+        ).select('-password'); // Exclude password from the returned user object
+
+        if (!updatedUser) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+
+        res.status(200).json({
+            message: 'User profile updated successfully by admin.',
+            user: updatedUser
+        });
+
+    } catch (error) {
+        console.error('Error updating user profile by admin:', error);
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ message: 'Validation error.', errors: error.errors });
+        }
+        // Handle other potential errors (e.g., duplicate key error if not caught above specifically)
+        if (error.code === 11000) { // MongoDB duplicate key error
+            return res.status(409).json({ message: 'A field (e.g., username or email) is already taken.', field: error.keyValue });
+        }
+        res.status(500).json({ message: 'Error updating user profile.', error: error.message });
+    }
+}
+
 module.exports = {
     registerUser,
     loginUser,
     logoutUser,
     refreshAccessToken,
     getUserProfile,
+    updateUserProfileByAdmin,
 };
