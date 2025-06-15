@@ -56,7 +56,7 @@ router.post('/payment',
     paymentValidationRules(),
     handleValidationErrors,
     authenticate,
-    planController.createPaymentRecord);
+    planController.paymentProcessingMiddleware);
 
 // Get payments by status route
 router.get('/payment',

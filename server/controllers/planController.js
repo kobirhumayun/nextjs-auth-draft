@@ -397,6 +397,46 @@ const getSubscriptionDetails = async (req, res) => {
     }
 };
 
+const processManualPayment = async (req, res) => {
+    createPaymentRecord(req, res);
+
+}
+
+const processPayPalPayment = async (req, res) => { }
+
+const processStripePayment = async (req, res) => { }
+
+
+// A mapping of payment method names to their functions
+const paymentMethods = {
+    'manual': processManualPayment,
+    'paypal': processPayPalPayment,
+    'stripe': processStripePayment,
+};
+
+/**
+ * Express middleware to process payments based on the method specified in the request body.
+ *
+ * @param {object} req - The Express request object.
+ * @param {object} res - The Express response object.
+ * @param {function} next - The next middleware function.
+ */
+const paymentProcessingMiddleware = (req, res, next) => {
+    const { paymentMethodDetails } = req.body;
+
+    if (!paymentMethodDetails) {
+        return res.status(400).json({ error: 'paymentMethodDetails is required.' });
+    }
+
+    const paymentFunction = paymentMethods[paymentMethodDetails];
+
+    if (!paymentFunction) {
+        return res.status(400).json({ error: `Unsupported payment method: ${paymentMethodDetails}` });
+    }
+
+    paymentFunction(req, res)
+
+};
 
 
 /**
@@ -545,5 +585,6 @@ module.exports = {
     getSubscriptionDetails,
     getAllPlans,
     createPaymentRecord,
-    getPaymentsByStatus
+    getPaymentsByStatus,
+    paymentProcessingMiddleware,
 };
