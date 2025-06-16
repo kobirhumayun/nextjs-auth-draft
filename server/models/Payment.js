@@ -69,6 +69,12 @@ const paymentSchema = new Schema({
         trim: true,
         index: true
     },
+    // add Schema in future when implement gateway
+    gatewaySessionId: {
+        type: Schema.Types.ObjectId,
+        ref: 'GatewaySession', // Links to the GatewaySession model
+        index: true
+    },
     /**
      * The unique transaction identifier provided by the payment gateway.
      * Crucial for reconciliation and looking up transactions in the gateway's system.
