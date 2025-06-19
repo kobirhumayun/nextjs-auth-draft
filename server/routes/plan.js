@@ -51,6 +51,11 @@ router.post('/change-plan',
 router.get('/all-plans',
     planController.getAllPlans);
 
+// place order
+router.post('/order',
+    authenticate,
+    planController.placeOrder);
+
 // Create payment record route
 router.post('/payment',
     paymentValidationRules(),
