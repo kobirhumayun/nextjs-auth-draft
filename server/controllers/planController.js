@@ -2,6 +2,7 @@ const User = require('../models/User');
 const Plan = require('../models/Plan');
 const mongoose = require('mongoose');
 const Payment = require('../models/Payment');
+const { createOrderWithPayment } = require('../utils/order');
 
 /**
  * @desc   Add a new subscription plan (Admin only)
@@ -576,6 +577,61 @@ const getPaymentsByStatus = async (req, res) => {
     }
 };
 
+const placeOrder = async (req, res) => {
+    try {
+        const {
+            amount,
+            currency,
+            paymentGateway,
+            gatewayTransactionId,
+            purpose,
+            planId, // Optional
+            paymentMethodDetails, // Optional
+            refundedAmount // Optional (usually 0 on creation)
+        } = req.body;
+
+
+        const orderData = {
+            user: req.user._id, // from authMiddleware
+            plan: planId,
+            amount: amount,
+            currency: currency,
+            status: 'active',
+            startDate: new Date(),
+            endDate: new Date(), // Example: 1 month subscription
+            renewalDate: new Date(),
+        };
+
+        const paymentData = {
+            userId: req.user._id, // from authMiddleware
+            // Mongoose Decimal128 handles string/number conversion, but ensure input is valid
+            amount: amount,
+            currency: currency.toUpperCase(),
+            paymentGateway: paymentGateway.toLowerCase(),
+            gatewayTransactionId,
+            purpose,
+            planId: planId || null, // Set to null if not provided
+            paymentMethodDetails: paymentMethodDetails || {},
+            invoiceId: null,
+            refundedAmount: refundedAmount || 0.00,
+            processedAt: new Date(),// Convert string date if provided
+            // createdAt and updatedAt are handled automatically by timestamps: true
+        };
+
+        const { order, payment } = await createOrderWithPayment(orderData, paymentData);
+
+        res.status(201).json({
+            message: 'Order created successfully',
+            orderId: order.orderID,
+            paymentId: payment._id
+        });
+
+    } catch (error) {
+        // The error thrown from the service will be caught here.
+        res.status(500).json({ message: error.message || 'An internal server error occurred.' });
+    }
+}
+
 
 module.exports = {
     addPlan,
@@ -587,4 +643,5 @@ module.exports = {
     createPaymentRecord,
     getPaymentsByStatus,
     paymentProcessingMiddleware,
+    placeOrder,
 };
