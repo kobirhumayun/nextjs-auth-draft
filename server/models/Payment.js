@@ -23,6 +23,12 @@ const paymentSchema = new Schema({
         ref: 'Plan', // Links to the Plan model
         index: true // Useful for analyzing payments per plan
     },
+    order: {
+        // Not required, as it will be added after the order is created
+        type: Schema.Types.ObjectId,
+        ref: 'Order',
+        index: true,
+    },
     /**
      * The monetary amount of the transaction. Using Decimal128 for precision.
      */
