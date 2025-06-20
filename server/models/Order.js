@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const OrderCounter = require('./OrderCounter');
+const Counter = require('./Counter');
 
 const orderSchema = new mongoose.Schema(
     {
@@ -62,7 +62,7 @@ const orderSchema = new mongoose.Schema(
 orderSchema.pre('save', async function (next) {
     if (this.isNew) {
         try {
-            const counter = await OrderCounter.findByIdAndUpdate(
+            const counter = await Counter.findByIdAndUpdate(
                 { _id: 'orderID' },
                 { $inc: { sequence_value: 1 } },
                 { new: true, upsert: true }
