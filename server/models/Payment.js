@@ -87,7 +87,6 @@ const paymentSchema = new Schema({
      */
     gatewayTransactionId: {
         type: String,
-        required: [true, 'Gateway transaction ID is required.'],
         unique: true, // Ensures no duplicate records for the same gateway transaction
         index: true // Essential for webhook processing and lookups
     },
