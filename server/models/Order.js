@@ -41,15 +41,12 @@ const orderSchema = new mongoose.Schema(
         },
         startDate: {
             type: Date,
-            required: true,
         },
         endDate: {
             type: Date,
-            required: true,
         },
         renewalDate: {
             type: Date,
-            required: true,
         },
     },
     {
