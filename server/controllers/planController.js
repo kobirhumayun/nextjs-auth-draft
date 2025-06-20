@@ -583,39 +583,53 @@ const placeOrder = async (req, res) => {
             amount,
             currency,
             paymentGateway,
-            gatewayTransactionId,
+            paymentMethodDetails,
             purpose,
-            planId, // Optional
-            paymentMethodDetails, // Optional
-            refundedAmount // Optional (usually 0 on creation)
+            planId
         } = req.body;
 
+        const userId = req.user._id
 
+        // --- Basic Input Validation (Optional but Recommended) ---
+        if (!userId || !amount || !currency || !paymentGateway || !paymentMethodDetails || !purpose || !planId) {
+            return res.status(400).json({ message: 'Missing required order fields.' });
+        }
+
+        // Validate ObjectIds if provided
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            return res.status(400).json({ message: 'Invalid User ID format.' });
+        }
+        if (planId && !mongoose.Types.ObjectId.isValid(planId)) {
+            return res.status(400).json({ message: 'Invalid Plan ID format.' });
+        }
+
+        const plan = await Plan.findById(planId);
+
+        if (!plan) {
+            return res.status(404).json({ message: `Plan with ID '${planId}' not found.` });
+        }
+
+        if (plan.price !== amount) {
+            return res.status(400).json({ message: `Plan price ${plan.price} does not match the order amount ${amount}.` });
+        }
+
+        // --- Create and Save Order Document ---
         const orderData = {
-            user: req.user._id, // from authMiddleware
+            user: userId,
             plan: planId,
-            amount: amount,
-            currency: currency,
-            status: 'active',
-            startDate: new Date(),
-            endDate: new Date(), // Example: 1 month subscription
-            renewalDate: new Date(),
+            amount: plan.price,
+            currency: currency.toUpperCase(),
         };
 
         const paymentData = {
-            userId: req.user._id, // from authMiddleware
-            // Mongoose Decimal128 handles string/number conversion, but ensure input is valid
-            amount: amount,
+            userId: userId,
+            planId: planId,
+            amount: plan.price,
             currency: currency.toUpperCase(),
             paymentGateway: paymentGateway.toLowerCase(),
-            gatewayTransactionId,
             purpose,
-            planId: planId || null, // Set to null if not provided
-            paymentMethodDetails: paymentMethodDetails || {},
-            invoiceId: null,
-            refundedAmount: refundedAmount || 0.00,
-            processedAt: new Date(),// Convert string date if provided
-            // createdAt and updatedAt are handled automatically by timestamps: true
+            paymentMethodDetails,
+            processedAt: new Date(),
         };
 
         const { order, payment } = await createOrderWithPayment(orderData, paymentData);
