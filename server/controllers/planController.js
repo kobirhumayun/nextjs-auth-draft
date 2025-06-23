@@ -634,11 +634,23 @@ const placeOrder = async (req, res) => {
 
         const { order, payment } = await createOrderWithPayment(orderData, paymentData);
 
-        res.status(201).json({
-            message: 'Order created successfully',
-            orderId: order.orderID,
-            paymentId: payment._id
-        });
+        if (paymentMethodDetails === 'manual') {
+            res.status(201).json({
+                message: 'Order created successfully',
+                status: 'To confirm order pay manually',
+                orderId: order.orderID,
+                paymentId: payment._id
+            });
+        }
+        else {
+            // actual payment gateway to be initiated here
+            res.status(201).json({
+                message: 'Order created successfully',
+                status: 'automatic payment processing',
+                orderId: order.orderID,
+                paymentId: payment._id
+            });
+        }
 
     } catch (error) {
         // The error thrown from the service will be caught here.
