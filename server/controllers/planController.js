@@ -404,18 +404,36 @@ const getSubscriptionDetails = async (req, res) => {
  *
  * @param {object} req - The Express request object.
  * @param {object} res - The Express response object.
- * @param {function} next - The next middleware function.
  */
-const manualPaymentSubmit = (req, res, next) => {
+const manualPaymentSubmit = async (req, res) => {
     const {
         amount,
         currency,
         paymentGateway,
-        gatewayTransactionId
+        gatewayTransactionId,
+        paymentId
     } = req.body;
 
+    const payment = await Payment.findById(paymentId);
 
+    if (!payment) {
+        return res.status(404).json({ message: 'Payment not found' });
+    }
+    if (payment.amount !== amount) {
+        return res.status(400).json({ message: 'Invalid payment amount' });
+    }
+    if (payment.currency !== currency) {
+        return res.status(400).json({ message: 'Invalid payment currency' });
+    }
 
+    payment.paymentGateway = paymentGateway;
+    payment.gatewayTransactionId = gatewayTransactionId;
+    await payment.save();
+
+    res.status(201).json({
+        message: 'Wait for confirmation from admin',
+        payment: payment,
+    });
 };
 
 
