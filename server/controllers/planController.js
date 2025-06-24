@@ -398,22 +398,6 @@ const getSubscriptionDetails = async (req, res) => {
     }
 };
 
-const processManualPayment = async (req, res) => {
-    createPaymentRecord(req, res);
-
-}
-
-const processPayPalPayment = async (req, res) => { }
-
-const processStripePayment = async (req, res) => { }
-
-
-// A mapping of payment method names to their functions
-const paymentMethods = {
-    'manual': processManualPayment,
-    'paypal': processPayPalPayment,
-    'stripe': processStripePayment,
-};
 
 /**
  * Express middleware to process payments based on the method specified in the request body.
@@ -577,6 +561,52 @@ const getPaymentsByStatus = async (req, res) => {
     }
 };
 
+const processManualPayment = async (req, res, order, payment) => {
+    // createPaymentRecord(req, res);
+    res.status(201).json({
+        message: 'Order created successfully',
+        status: 'To confirm order pay manually',
+        orderId: order.orderID,
+        paymentId: payment._id
+    });
+
+}
+
+const processSslcommerzPayment = async (req, res, order, payment) => {
+    res.status(201).json({
+        message: 'Order created successfully',
+        status: 'payment processing by sslcommerz',
+        orderId: order.orderID,
+        paymentId: payment._id
+    });
+}
+
+const processPayPalPayment = async (req, res, order, payment) => {
+    res.status(201).json({
+        message: 'Order created successfully',
+        status: 'payment processing by paypal',
+        orderId: order.orderID,
+        paymentId: payment._id
+    });
+}
+
+const processStripePayment = async (req, res, order, payment) => {
+    res.status(201).json({
+        message: 'Order created successfully',
+        status: 'payment processing by stripe',
+        orderId: order.orderID,
+        paymentId: payment._id
+    });
+}
+
+// A mapping of payment method names to their functions
+const paymentMethods = {
+    'manual': processManualPayment,
+    'sslcommerz': processSslcommerzPayment,
+    'paypal': processPayPalPayment,
+    'stripe': processStripePayment,
+};
+
 const placeOrder = async (req, res) => {
     try {
         const {
@@ -634,23 +664,13 @@ const placeOrder = async (req, res) => {
 
         const { order, payment } = await createOrderWithPayment(orderData, paymentData);
 
-        if (paymentMethodDetails === 'manual') {
-            res.status(201).json({
-                message: 'Order created successfully',
-                status: 'To confirm order pay manually',
-                orderId: order.orderID,
-                paymentId: payment._id
-            });
+        const paymentFunction = paymentMethods[paymentMethodDetails];
+
+        if (!paymentFunction) {
+            return res.status(400).json({ error: `Unsupported payment method: ${paymentMethodDetails}` });
         }
-        else {
-            // actual payment gateway to be initiated here
-            res.status(201).json({
-                message: 'Order created successfully',
-                status: 'automatic payment processing',
-                orderId: order.orderID,
-                paymentId: payment._id
-            });
-        }
+
+        paymentFunction(req, res, order, payment)
 
     } catch (error) {
         // The error thrown from the service will be caught here.
