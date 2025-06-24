@@ -406,20 +406,15 @@ const getSubscriptionDetails = async (req, res) => {
  * @param {object} res - The Express response object.
  * @param {function} next - The next middleware function.
  */
-const paymentProcessingMiddleware = (req, res, next) => {
-    const { paymentMethodDetails } = req.body;
+const manualPaymentSubmit = (req, res, next) => {
+    const {
+        amount,
+        currency,
+        paymentGateway,
+        gatewayTransactionId
+    } = req.body;
 
-    if (!paymentMethodDetails) {
-        return res.status(400).json({ error: 'paymentMethodDetails is required.' });
-    }
 
-    const paymentFunction = paymentMethods[paymentMethodDetails];
-
-    if (!paymentFunction) {
-        return res.status(400).json({ error: `Unsupported payment method: ${paymentMethodDetails}` });
-    }
-
-    paymentFunction(req, res)
 
 };
 
@@ -605,6 +600,6 @@ module.exports = {
     getSubscriptionDetails,
     getAllPlans,
     getPaymentsByStatus,
-    paymentProcessingMiddleware,
+    manualPaymentSubmit,
     placeOrder,
 };

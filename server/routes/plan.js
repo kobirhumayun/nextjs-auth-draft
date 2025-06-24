@@ -56,12 +56,11 @@ router.post('/order',
     authenticate,
     planController.placeOrder);
 
-// Create payment record route
-router.post('/payment',
+router.post('/manual-payment',
     paymentValidationRules(),
     handleValidationErrors,
     authenticate,
-    planController.paymentProcessingMiddleware);
+    planController.manualPaymentSubmit);
 
 // Get payments by status route
 router.get('/payment',
