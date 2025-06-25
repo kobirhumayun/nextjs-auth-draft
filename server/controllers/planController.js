@@ -265,7 +265,7 @@ const calculateNextBillingDate = (startingDate, billingCycle) => {
  * @access Private
  * @body   { appliedUserId: string, newPlanId: string}
  */
-const changePlan = async (req, res) => {
+const activatedPlan = async (req, res) => {
     const { appliedUserId, newPlanId, paymentId } = req.body;
 
     // Validate appliedUserId presence
@@ -614,7 +614,7 @@ module.exports = {
     addPlan,
     updatePlan,
     deletePlan,
-    changePlan,
+    activatedPlan,
     getSubscriptionDetails,
     getAllPlans,
     getPaymentsByStatus,

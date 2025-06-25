@@ -40,12 +40,12 @@ router.get('/my-plan',
     planController.getSubscriptionDetails);
 
 // Change plan route
-router.post('/change-plan',
+router.post('/approve-plan',
     changePlanValidationRules(),
     handleValidationErrors,
     authenticate,
     authorize("admin"),
-    planController.changePlan);
+    planController.activatedPlan);
 
 // Get all plans route
 router.get('/all-plans',
