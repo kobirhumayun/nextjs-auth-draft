@@ -346,7 +346,7 @@ const activatedPlan = async (req, res) => {
         // --- Prepare and Send Response ---
         // Construct response using the already fetched newPlan details
         res.status(200).json({
-            message: 'Subscription plan changed successfully.',
+            message: 'Subscription plan activated successfully.',
             subscription: {
                 // Send the full plan object or selected fields
                 plan: {
