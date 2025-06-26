@@ -2,6 +2,7 @@ const User = require('../models/User');
 const Plan = require('../models/Plan');
 const mongoose = require('mongoose');
 const Payment = require('../models/Payment');
+const Invoice = require('../models/Invoice')
 const { createOrderWithPayment } = require('../utils/order');
 
 /**
@@ -338,10 +339,22 @@ const activatedPlan = async (req, res) => {
         user.subscriptionEndDate = calculateNextBillingDate(subscriptionStartinDate, newPlan.billingCycle);
         // Reset trial end date when changing plans (adjust logic if needed)
         user.trialEndsAt = null;
-
+        
+        const invoice = new Invoice({
+            user: user._id,
+            payment: payment._id,
+            plan: newPlan._id,
+            amount: payment.amount,
+            currency: payment.currency,
+            status: 'paid',
+            subscriptionStartDate: user.subscriptionStartDate,
+            subscriptionEndDate: user.subscriptionEndDate,
+        });
+        
         // Save the updated user document
         await user.save();
         await payment.updateOne({ status: 'succeeded' }); // Mark
+        await invoice.save();
 
         // --- Prepare and Send Response ---
         // Construct response using the already fetched newPlan details
