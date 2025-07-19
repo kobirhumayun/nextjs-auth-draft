@@ -81,11 +81,10 @@ const loginUser = async (req, res) => {
         // This model method also handles subscription checks and saving the refresh token.
         const { accessToken, refreshToken } = await user.generateAccessAndRefereshTokens();
 
-        res.cookie('refreshToken', refreshToken, COOKIE_OPTIONS); //
-
         res.status(200).json({
             message: 'Login successful.',
             accessToken,
+            refreshToken,
             user: { // Send back non-sensitive user info
                 _id: user._id,
                 username: user.username,
@@ -109,9 +108,7 @@ const loginUser = async (req, res) => {
  */
 const logoutUser = async (req, res) => {
     const userId = req.user?._id; // From auth middleware
-    const incomingRefreshToken = req.cookies?.refreshToken; //
-
-    res.clearCookie('refreshToken', COOKIE_OPTIONS); // Clear cookie regardless
+    const incomingRefreshToken = req.body?.refreshToken; //
 
     try {
         // Unset the refresh token in the database
@@ -135,7 +132,7 @@ const logoutUser = async (req, res) => {
  * @access Public (but requires a valid refresh token cookie)
  */
 const refreshAccessToken = async (req, res) => {
-    const incomingRefreshToken = req.cookies?.refreshToken; //
+    const incomingRefreshToken = req.body?.refreshToken; //
 
     if (!incomingRefreshToken) {
         return res.status(401).json({ message: 'Unauthorized: No refresh token provided.' }); //
@@ -151,29 +148,25 @@ const refreshAccessToken = async (req, res) => {
             .populate('planId'); // needed for model methods
 
         if (!user || user.refresh_token !== incomingRefreshToken) { //
-            res.clearCookie('refreshToken', COOKIE_OPTIONS); //
             return res.status(403).json({ message: 'Forbidden: Invalid refresh token.' });
         }
 
         // Generate new tokens using the user instance method.
         // This will handle refresh token rotation as implemented in the model.
-        const { accessToken, refreshToken: newRotatedRefreshToken } = await user.generateAccessAndRefereshTokens(); // for rotation logic path
-
-        res.cookie('refreshToken', newRotatedRefreshToken, COOKIE_OPTIONS); // Send new refresh token in cookie
+        const { accessToken, refreshToken } = await user.generateAccessAndRefereshTokens(); // for rotation logic path
 
         res.status(200).json({
             message: 'Access token refreshed.',
-            accessToken: accessToken,
+             accessToken,
+             refreshToken,
         }); //
 
     } catch (error) {
         // console.error('Error refreshing access token:', error);
         if (error instanceof jwt.TokenExpiredError) { //
-            res.clearCookie('refreshToken', COOKIE_OPTIONS);
             return res.status(403).json({ message: 'Forbidden: Refresh token expired.' });
         }
         if (error instanceof jwt.JsonWebTokenError) { //
-            res.clearCookie('refreshToken', COOKIE_OPTIONS);
             return res.status(403).json({ message: 'Forbidden: Invalid refresh token.' });
         }
         res.status(500).json({ message: 'Error refreshing access token.', error: error.message });
