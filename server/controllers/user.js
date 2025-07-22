@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const UsedRefreshToken = require('../models/UsedRefreshToken');
 const jwt = require('jsonwebtoken');
 const { isValidObjectId } = require('mongoose');
 
@@ -64,7 +65,7 @@ const loginUser = async (req, res) => {
         // Populate 'planId' as it's used by model methods for token generation/subscription checks.
         const user = await User.findOne({
             $or: [{ username: identifier }, { email: identifier }]
-        }).select('+password_hash +refresh_token').populate('planId'); //
+        }).select('+password_hash +refreshToken').populate('planId'); //
 
         if (!user) {
             return res.status(404).json({ message: 'Invalid credentials.' }); //
@@ -113,9 +114,9 @@ const logoutUser = async (req, res) => {
     try {
         // Unset the refresh token in the database
         if (userId) { // If user authenticated
-            await User.updateOne({ _id: userId }, { $unset: { refresh_token: "" } }); // logic using $unset
+            await User.updateOne({ _id: userId }, { $unset: { refreshToken: "" } }); // logic using $unset
         } else if (incomingRefreshToken) { // Fallback, less secure, if user not identified by middleware but token exists
-            await User.updateOne({ refresh_token: incomingRefreshToken }, { $unset: { refresh_token: "" } });
+            await User.updateOne({ refreshToken: incomingRefreshToken }, { $unset: { refreshToken: "" } });
         }
 
         res.status(200).json({ message: 'User logged out successfully.' }); //
@@ -131,45 +132,83 @@ const logoutUser = async (req, res) => {
  * @route POST /api/users/refresh-token
  * @access Public (but requires a valid refresh token cookie)
  */
+
 const refreshAccessToken = async (req, res) => {
-    const incomingRefreshToken = req.body?.refreshToken; //
+    const incomingRefreshToken = req.body?.refreshToken;
 
     if (!incomingRefreshToken) {
-        return res.status(401).json({ message: 'Unauthorized: No refresh token provided.' }); //
+        return res.status(401).json({ message: 'Unauthorized: No refresh token provided.' });
     }
 
     try {
-        // Verify the incoming refresh token
-        const decoded = jwt.verify(incomingRefreshToken, REFRESH_TOKEN_SECRET); //
+        // 1. Verify the JWT signature and decode the payload
+        const decoded = jwt.verify(incomingRefreshToken, REFRESH_TOKEN_SECRET);
 
-        // Find the user, select '+refresh_token' for validation, and populate 'planId'.
+        // 2. Find the user associated with the token
         const user = await User.findById(decoded._id)
-            .select('+refresh_token') // needed for comparison
-            .populate('planId'); // needed for model methods
+            .select('+refreshToken') // Explicitly request the refreshToken
+            .populate('planId'); // Populate necessary fields
 
-        if (!user || user.refresh_token !== incomingRefreshToken) { //
-            return res.status(403).json({ message: 'Forbidden: Invalid refresh token.' });
+        if (!user) {
+            // console.log('User not found:', incomingRefreshToken);
+            return res.status(403).json({ message: 'Forbidden: User not found.' });
         }
 
-        // Generate new tokens using the user instance method.
-        // This will handle refresh token rotation as implemented in the model.
-        const { accessToken, refreshToken } = await user.generateAccessAndRefereshTokens(); // for rotation logic path
+        // 3. --- The Core Logic for Handling Race Conditions ---
 
-        res.status(200).json({
-            message: 'Access token refreshed.',
-             accessToken,
-             refreshToken,
-        }); //
+        // HAPPY PATH: The token matches the current one in the DB.
+        if (user.refreshToken === incomingRefreshToken) {
+            // Generate new tokens
+            const { accessToken, refreshToken: newRefreshToken } = await user.generateAccessAndRefereshTokens();
+
+            // Add the just-used token to the grace period list
+            await UsedRefreshToken.create({
+                token: incomingRefreshToken,
+                userId: user._id,
+                accessToken
+            });
+
+            // Note: The `generateAccessAndRefereshTokens` method should handle saving the newRefreshToken to the user document.
+            // console.log('Token sussesfully refreshed:', incomingRefreshToken);
+
+            return res.status(200).json({
+                message: 'Access token refreshed.',
+                accessToken,
+                refreshToken: newRefreshToken,
+            });
+        }
+
+        // GRACE PERIOD PATH: The token doesn't match the current one,
+        // so check if it's a recently used token.
+        const isInGraceList = await UsedRefreshToken.findOne({ token: incomingRefreshToken });
+
+        if (isInGraceList) {
+            // console.log('Token sussesfully refreshed: (grace period)', incomingRefreshToken);
+            // It's a concurrent request. The token is valid for this short window.
+            // We issue a new access token but return the *already rotated* refresh token
+            // that is now stored on the user object to keep all clients in sync.
+            const accessToken = isInGraceList.accessToken;
+            return res.status(200).json({
+                message: 'Access token refreshed (grace period).',
+                accessToken,
+                refreshToken: user.refreshToken, // Send the newest token
+            });
+        }
+
+        // FAILURE PATH: The token is not the current one and not in the grace list.
+        // It's an old, invalid, or compromised token.
+        // console.log('Token invalid:', incomingRefreshToken);
+        return res.status(403).json({ message: 'Forbidden: Invalid refresh token.' });
 
     } catch (error) {
-        // console.error('Error refreshing access token:', error);
-        if (error instanceof jwt.TokenExpiredError) { //
+        if (error instanceof jwt.TokenExpiredError) {
             return res.status(403).json({ message: 'Forbidden: Refresh token expired.' });
         }
-        if (error instanceof jwt.JsonWebTokenError) { //
-            return res.status(403).json({ message: 'Forbidden: Invalid refresh token.' });
+        if (error instanceof jwt.JsonWebTokenError) {
+            return res.status(403).json({ message: 'Forbidden: Malformed refresh token.' });
         }
-        res.status(500).json({ message: 'Error refreshing access token.', error: error.message });
+        // console.error('Error refreshing access token:', error);
+        return res.status(500).json({ message: 'Internal server error.' });
     }
 };
 

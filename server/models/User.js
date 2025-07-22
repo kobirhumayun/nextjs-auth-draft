@@ -34,7 +34,7 @@ const userSchema = new Schema({
         required: [true, 'Password hash is required.'],
         select: false // Exclude password hash from query results by default
     },
-    refresh_token: {
+    refreshToken: {
         type: String,
         select: false // Exclude refresh token from query results by default
     },
@@ -242,7 +242,7 @@ userSchema.methods.generateAccessAndRefereshTokens = async function () {
         const accessToken = this.generateAccessToken();
         const refreshToken = this.generateRefreshToken();
 
-        this.refresh_token = refreshToken;
+        this.refreshToken = refreshToken;
         // The pre-save hook handles password hashing
         await this.save();
 
