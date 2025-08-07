@@ -90,7 +90,7 @@ const loginUser = async (req, res) => {
                 _id: user._id,
                 username: user.username,
                 email: user.email,
-                roles: user.roles,
+                role: user.role,
                 plan: user.planId && typeof user.planId === 'object' ? user.planId.slug : (user.subscriptionStatus === 'free' ? 'free' : null),
                 subscriptionStatus: user.subscriptionStatus
             }
@@ -271,7 +271,7 @@ const updateUserProfileByAdmin = async (req, res) => {
 
     // 3. Define allowed fields for an admin to update
     //    (Prevents unwanted fields like '_id' or 'password' from being directly updated here)
-    const allowedUpdates = ['username', 'email', 'firstName', 'lastName', 'profilePictureUrl', 'planId', 'subscriptionStatus', 'subscriptionStartDate', 'subscriptionEndDate', 'trialEndsAt', 'roles', 'isActive' /*, other fields as needed */];
+    const allowedUpdates = ['username', 'email', 'firstName', 'lastName', 'profilePictureUrl', 'planId', 'subscriptionStatus', 'subscriptionStartDate', 'subscriptionEndDate', 'trialEndsAt', 'role', 'isActive' /*, other fields as needed */];
     const requestedUpdates = Object.keys(updateData);
 
     const isValidOperation = requestedUpdates.every(field => allowedUpdates.includes(field));

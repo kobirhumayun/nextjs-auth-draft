@@ -74,9 +74,9 @@ const userSchema = new Schema({
         type: Date,
         index: true
     },
-    roles: {
+    role: {
         type: String,
-        enum: ['user', 'admin', 'editor', 'support'], // Define roles
+        enum: ['user', 'admin', 'editor', 'support'], // Define role
         default: 'user',
         index: true
     },
@@ -164,7 +164,7 @@ userSchema.methods.generateAccessToken = function () {
     return jwt.sign(
         {
             _id: this._id,
-            role: this.roles,
+            role: this.role,
             plan: planSlug
         },
         ACCESS_TOKEN_SECRET,
