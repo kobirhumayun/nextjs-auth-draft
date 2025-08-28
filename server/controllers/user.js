@@ -150,7 +150,7 @@ const refreshAccessToken = async (req, res) => {
             .populate('planId'); // Populate necessary fields
 
         if (!user) {
-            // console.log('User not found:', incomingRefreshToken);
+            console.log('User not found:', incomingRefreshToken);
             return res.status(403).json({ message: 'Forbidden: User not found.' });
         }
 
@@ -169,7 +169,7 @@ const refreshAccessToken = async (req, res) => {
             });
 
             // Note: The `generateAccessAndRefereshTokens` method should handle saving the newRefreshToken to the user document.
-            // console.log('Token sussesfully refreshed:', incomingRefreshToken);
+            console.log('Token sussesfully refreshed:', incomingRefreshToken);
 
             return res.status(200).json({
                 message: 'Access token refreshed.',
@@ -183,7 +183,7 @@ const refreshAccessToken = async (req, res) => {
         const isInGraceList = await UsedRefreshToken.findOne({ token: incomingRefreshToken });
 
         if (isInGraceList) {
-            // console.log('Token sussesfully refreshed: (grace period)', incomingRefreshToken);
+            console.log('Token sussesfully refreshed: (grace period)', incomingRefreshToken);
             // It's a concurrent request. The token is valid for this short window.
             // We issue a new access token but return the *already rotated* refresh token
             // that is now stored on the user object to keep all clients in sync.
@@ -197,7 +197,7 @@ const refreshAccessToken = async (req, res) => {
 
         // FAILURE PATH: The token is not the current one and not in the grace list.
         // It's an old, invalid, or compromised token.
-        // console.log('Token invalid:', incomingRefreshToken);
+        console.log('Token invalid:', incomingRefreshToken);
         return res.status(403).json({ message: 'Forbidden: Invalid refresh token.' });
 
     } catch (error) {
@@ -207,7 +207,7 @@ const refreshAccessToken = async (req, res) => {
         if (error instanceof jwt.JsonWebTokenError) {
             return res.status(403).json({ message: 'Forbidden: Malformed refresh token.' });
         }
-        // console.error('Error refreshing access token:', error);
+        console.error('Error refreshing access token:', error);
         return res.status(500).json({ message: 'Internal server error.' });
     }
 };
