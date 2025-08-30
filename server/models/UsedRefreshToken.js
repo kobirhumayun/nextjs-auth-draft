@@ -22,7 +22,7 @@ const usedRefreshTokenSchema = new mongoose.Schema({
     createdAt: {
         type: Date,
         default: Date.now,
-        expires: '30s', // Grace period of 30 seconds. Adjust as needed.
+        expires: '10s', // Grace period of 10 seconds. Adjust as needed.
     },
 });
 
